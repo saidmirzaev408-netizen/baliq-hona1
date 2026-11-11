@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Icons } from './Icons';
 import { formatUZS } from '../utils/audio';
+import { FishHouseLogo } from './FishHouseLogo';
 
 export default function LandingPageView({
   rooms,
@@ -193,19 +194,8 @@ export default function LandingPageView({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
           
           {/* Logo */}
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-ocean-600 via-turquoise-500 to-cyan-300 p-0.5 shadow-glow-cyan flex items-center justify-center transform hover:rotate-6 transition-transform">
-              <div className="w-full h-full bg-navy-950 rounded-[14px] flex items-center justify-center text-turquoise-400">
-                <Icons.Fish className="w-6 h-6 animate-pulse" />
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-display font-black text-2xl tracking-wider text-white">FISH HOUSE</span>
-                <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded bg-turquoise-500/20 text-turquoise-300 border border-turquoise-500/30">Baliq</span>
-              </div>
-              <p className="text-[10px] uppercase tracking-widest text-turquoise-400 font-semibold">Premium Seafood Restaurant</p>
-            </div>
+          <div className="flex items-center cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            <FishHouseLogo className="h-14" textSize="text-2xl" showSubtitle={true} />
           </div>
 
           {/* Navigation Links */}
@@ -879,15 +869,7 @@ export default function LandingPageView({
             
             {/* Col 1: About & Logo */}
             <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-ocean-600 to-turquoise-400 flex items-center justify-center text-navy-950">
-                  <Icons.Fish className="w-6 h-6" />
-                </div>
-                <div>
-                  <span className="font-display font-black text-xl text-white">FISH HOUSE</span>
-                  <p className="text-[9px] uppercase tracking-widest text-turquoise-400">Baliq Taomlari Restorani</p>
-                </div>
-              </div>
+              <FishHouseLogo className="h-14" textSize="text-xl" showSubtitle={true} />
               <p className="text-slate-400 leading-relaxed text-xs">
                 {restaurant.uzTagline || "Toshkentdagi eng sara baliq va dengiz mahsulotlari restorani. Tirik tog' fareli, sazan, oq amur va qirollik steyklari."}
               </p>
