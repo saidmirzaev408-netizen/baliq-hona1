@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FISH HOUSE – Seafood Restaurant Platform</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            navy: {
+              950: '#030814',
+              900: '#071126',
+              850: '#0B1736',
+              800: '#10224D',
+              750: '#152C63',
+              700: '#1A377B',
+              600: '#234C9E'
+            },
+            ocean: {
+              900: '#0C2D48',
+              800: '#145DA0',
+              700: '#0E86D4',
+              600: '#0284C7',
+              500: '#0EA5E9',
+              400: '#38BDF8'
+            },
+            turquoise: {
+              600: '#0891B2',
+              500: '#06B6D4',
+              400: '#22D3EE',
+              300: '#67E8F9',
+              200: '#A5F3FC'
+            },
+            gold: {
+              600: '#CA8A04',
+              500: '#EAB308',
+              400: '#FACC15',
+              300: '#FDE047'
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Playfair Display"', 'serif']
+          },
+          boxShadow: {
+            'glow-cyan': '0 0 25px -5px rgba(6, 182, 212, 0.45)',
+            'glow-red': '0 0 25px -5px rgba(239, 68, 68, 0.65)',
+            'glow-gold': '0 0 25px -5px rgba(234, 179, 8, 0.45)',
+            'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React 18 & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel Standalone for JSX compilation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #071126;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1A377B;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #06B6D4;
+    }
+
+    /* Glassmorphism Styles */
+    .glass-card {
+      background: rgba(11, 23, 54, 0.75);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .glass-card-hover {
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-card-hover:hover {
+      transform: translateY(-4px);
+      border-color: rgba(6, 182, 212, 0.35);
+      box-shadow: 0 16px 36px -8px rgba(3, 8, 20, 0.8), 0 0 20px -4px rgba(6, 182, 212, 0.2);
+    }
+
+    /* Shimmer Effect for OCCUPIED (ZANIT) */
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .shimmer-badge {
+      background: linear-gradient(90deg, rgba(220, 38, 38, 0.95) 0%, rgba(248, 113, 113, 1) 50%, rgba(220, 38, 38, 0.95) 100%);
+      background-size: 200% 100%;
+      animation: shimmer 2.2s infinite;
+    }
+
+    /* Print Specific Styles */
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #printable-receipt-area, #printable-receipt-area * {
+        visibility: visible !important;
+      }
+      #printable-receipt-area {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        max-width: 80mm !important;
+        margin: 0 auto !important;
+        padding: 10px !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-navy-950 text-slate-100 font-sans antialiased min-h-screen selection:bg-turquoise-500 selection:text-navy-950">
+  <div id="root">
+    <!-- Initial Loading Spinner -->
+    <div class="flex flex-col items-center justify-center min-h-screen bg-navy-950 text-white space-y-4">
+      <div class="w-16 h-16 border-4 border-turquoise-400 border-t-transparent rounded-full animate-spin"></div>
+      <h2 class="text-xl font-bold tracking-wider text-turquoise-300 font-display">FISH HOUSE</h2>
+      <p class="text-xs text-slate-400">Restoran platformasi yuklanmoqda...</p>
+    </div>
+  </div>
+
+  <!-- Inline Seed Data (Works 100% offline & with file://) -->
+  <script>
+    window.FISH_HOUSE_DATA = {
+      restaurant: {
+        name: "FISH HOUSE",
+        tagline: "Premium Seafood & Fish Restaurant",
+        uzTagline: "Eng Sara Baliq va Dengiz Taomlari Restorani",
+        address: "Toshkent sh., Chilonzor tumani, Dengiz ko'chasi, 7-uy",
+        phone: "+998 (71) 200-88-99",
+        telegram: "@fishhouse_uz",
+        workingHours: "11:00 - 23:30",
+        serviceChargePercent: 10,
+        currency: "UZS"
+      },
+      rooms: [
+        {
+          id: "r101",
+          number: "101",
+          name: "Dengiz Marvaridi",
+          subtitle: "Ocean Pearl VIP Hall",
+          type: "VIP",
+          seats: 12,
+          capacityText: "10-12 kishi",
+          status: "OCCUPIED",
+          photo: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=80",
+          amenities: ["Dengiz Akvariumi", "Smart TV 75\"", "Konditsioner", "Wi-Fi 6", "VIP Xizmat", "Maxsus Ofitsiant"],
+          floor: "1-qavat",
+          description: "Haqiqiy dengiz marvaridi muhitidagi hashamatli VIP xona. Xonada ulkan tirik baliqli dengiz akvariumi va yuqori darajadagi akustik tizim o'rnatilgan.",
+          customer: {
+            name: "Alisher Qodirov",
+            phone: "+998 90 123-45-67",
+            guests: 8,
+            checkInTime: "13:15",
+            waiter: "Sardor Saidov",
+            notes: "Mehmonlar xorijiy hamkorlar. Baliq yaxshilab qovurilsin."
+          }
+        },
+        {
+          id: "r102",
+          number: "102",
+          name: "Moviy To'lqin",
+          subtitle: "Blue Wave Chamber",
+          type: "Kabinet",
+          seats: 8,
+          capacityText: "6-8 kishi",
+          status: "AVAILABLE",
+          photo: "https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=900&q=80",
+          amenities: ["Smart TV", "Konditsioner", "Fon Musiqasi", "Tezkor Wi-Fi"],
+          floor: "1-qavat",
+          description: "Moviy dengiz to'lqinlari tusidagi shinam kabinet. Do'stlar davrasi va kichik oilaviy kechki ovqatlar uchun juda qulay.",
+          customer: null
+        },
+        {
+          id: "r103",
+          number: "103",
+          name: "Liman Sohil",
+          subtitle: "Harbour Lounge",
+          type: "Lounge",
+          seats: 6,
+          capacityText: "4-6 kishi",
+          status: "OCCUPIED",
+          photo: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=900&q=80",
+          amenities: ["Yumshoq Divanlar", "Konditsioner", "Tabiiy Yog'och Dizayn", "Wi-Fi"],
+          floor: "1-qavat",
+          description: "Tabiiy yog'och mebellari va sokin bandargoh muhitiga ega kofe-lounge kabinet. O'ta qulay yumshoq charm divanlar bilan jihozlangan.",
+          customer: {
+            name: "Bobur Mirzayev",
+            phone: "+998 97 888-99-00",
+            guests: 5,
+            checkInTime: "13:40",
+            waiter: "Jahongir Olimov",
+            notes: "Achchiq sous alohida keltirilsin."
+          }
+        },
+        {
+          id: "r104",
+          number: "104",
+          name: "Atlantika Katta Zali",
+          subtitle: "Atlantic Grand Banquet",
+          type: "Banket Zali",
+          seats: 24,
+          capacityText: "18-24 kishi",
+          status: "RESERVED",
+          photo: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=900&q=80",
+          amenities: ["Katta Proyektor", "Professional Karaoke", "2 ta Konditsioner", "Alohida Sanuzel", "VIP Stol"],
+          floor: "2-qavat",
+          description: "Katta tantanalar, yubileylar va korporativ baliq ziyofatlari uchun mo'ljallangan ulkan banket xonasi.",
+          customer: null,
+          reservation: {
+            id: "res-104",
+            name: "Nodira Karimova",
+            phone: "+998 93 555-12-34",
+            date: "Bugun (11 Noyabr)",
+            time: "19:00",
+            guests: 20,
+            deposit: 500000,
+            notes: "Tug'ilgan kun nishonlanadi. Stol bayramona bezatilsin."
+          }
+        },
+        {
+          id: "r105",
+          number: "105",
+          name: "Oltin Baliqcha",
+          subtitle: "Golden Fish VIP Suite",
+          type: "VIP",
+          seats: 10,
+          capacityText: "8-10 kishi",
+          status: "AVAILABLE",
+          photo: "https://images.unsplash.com/photo-1551632436-cbf8fc35adfe?auto=format&fit=crop&w=900&q=80",
+          amenities: ["Zarhal Bezatish", "Konditsioner", "Smart TV", "Musiqa Markazi", "Wi-Fi"],
+          floor: "2-qavat",
+          description: "Sharqona zarhal elementlar va dengiz turkumi uyg'unlashgan muhtasham VIP salon. Muhim biznes uchrashuvlariga mos.",
+          customer: null
+        },
+        {
+          id: "r106",
+          number: "106",
+          name: "Marjon Qoyasi",
+          subtitle: "Coral Reef Family Room",
+          type: "Oilaviy",
+          seats: 6,
+          capacityText: "4-6 kishi",
+          status: "AVAILABLE",
+          photo: "https://images.unsplash.com/photo-1578474846511-04ba529f0b88?auto=format&fit=crop&w=900&q=80",
+          amenities: ["Bolalar Stulchalari", "Rang-barang Akvarium", "Smart TV (Multfilmlar)", "Konditsioner"],
+          floor: "1-qavat",
+          description: "Oilaviy hordiq chiqarish va bolalar bilan tashrif buyuruvchilar uchun qulay, marjon rangidagi shinam xona.",
+          customer: null
+        },
+        {
+          id: "r107",
+          number: "107",
+          name: "Kaspiy Bo'yi",
+          subtitle: "Caspian Traditional Cabin",
+          type: "Kabinet",
+          seats: 8,
+          capacityText: "6-8 kishi",
+          status: "OCCUPIED",
+          photo: "https://images.unsplash.com/photo-1537047902294-62a40c20a6ae?auto=format&fit=crop&w=900&q=80",
+          amenities: ["Milliy Tapchan & Stol", "Konditsioner", "Choy Marosimi To'plami", "Wi-Fi"],
+          floor: "1-qavat",
+          description: "Kaspiy dengizi an'anaviy baliqchi kulbasi uslubida yaratilgan, milliy qulaylik va xushbo'y choy anjomlari bilan to'ldirilgan kabinet.",
+          customer: {
+            name: "Farhod Yoqubov",
+            phone: "+998 99 444-23-11",
+            guests: 7,
+            checkInTime: "12:50",
+            waiter: "Aziz Qosimov",
+            notes: "Choy ko'k bo'lsin, limon bilan."
+          }
+        },
+        {
+          id: "r108",
+          number: "108",
+          name: "Tinch Okean VIP",
+          subtitle: "Pacific Luxury Suite",
+          type: "VIP",
+          seats: 16,
+          capacityText: "12-16 kishi",
+          status: "RESERVED",
+          photo: "https://images.unsplash.com/photo-1590846406792-0adc7f938f1d?auto=format&fit=crop&w=900&q=80",
+          amenities: ["Karaoke Studio", "Panorama Oyna", "Bar Stoykasi", "Smart TV 85\"", "Konditsioner"],
+          floor: "2-qavat",
+          description: "Tinch okeanining chuqur moviy jozibasi bilan bezatilgan premium darajadagi xona. Ovoz o'tkazmaydigan devorlar va professional karaoke tizimi.",
+          customer: null,
+          reservation: {
+            id: "res-108",
+            name: "Rustam Rahimov",
+            phone: "+998 91 777-65-43",
+            date: "Bugun (11 Noyabr)",
+            time: "20:30",
+            guests: 14,
+            deposit: 1000000,
+            notes: "Xorijiy delegatsiya bilan muzokara kechasi."
+          }
+        }
+      ],
+      dishes: [
+        {
+          id: "d1",
+          name: "Qovurilgan Oq Baliq (Sudak)",
+          category: "fried",
+          categoryName: "Qovurilgan Baliq",
+          price: 85000,
+          weight: "500 gr",
+          image: "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=700&q=80",
+          description: "Zarafshon daryosining toza sudak balig'i. Maxsus un va ziravorlarda oltinrang qarsildoq qilib qovurilgan, limon va ukrop sousi bilan tortiladi.",
+          status: "AVAILABLE",
+          popular: true,
+          cookTime: "20-25 daqiqa"
+        },
+        {
+          id: "d2",
+          name: "Grilda Pishirilgan Forel",
+          category: "grilled",
+          categoryName: "Gril Baliq",
+          price: 115000,
+          weight: "450 gr",
+          image: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=700&q=80",
+          description: "Bo'stonliq tog' irmoqlarining yangi uzilgan tog' foreli balig'i. Cho'g'da rozmarin, zaytun moyi va limon sharbati bilan nafis pishiriladi.",
+          status: "AVAILABLE",
+          popular: true,
+          cookTime: "25-30 daqiqa"
+        },
+        {
+          id: "d3",
+          name: "Tandirda Pishirilgan Sazan",
+          category: "baked",
+          categoryName: "Maxsus Taom",
+          price: 95000,
+          weight: "650 gr",
+          image: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80",
+          description: "An'anaviy tandirda maxsus o'tlar va anor donalari bilan dimlab pishirilgan xushbo'y sazan balig'i. Nihoyatda sersuv va mayin go'shtli.",
+          status: "AVAILABLE",
+          popular: false,
+          cookTime: "30-35 daqiqa"
+        },
+        {
+          id: "d4",
+          name: "Baliqli Qirollik Uxa Sho'rvasi",
+          category: "soup",
+          categoryName: "Baliq Sho'rva",
+          price: 45000,
+          weight: "400 gr",
+          image: "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=700&q=80",
+          description: "Uch xil baliq bulonida za'faron, yangi ko'katlar va butun baliq filesi bilan pishirilgan an'anaviy shifobaxsh sho'rva.",
+          status: "AVAILABLE",
+          popular: true,
+          cookTime: "15-20 daqiqa"
+        },
+        {
+          id: "d5",
+          name: "Norvegiya Qizil Baliq Steyki (Salmon)",
+          category: "special",
+          categoryName: "Maxsus Taom",
+          price: 165000,
+          weight: "350 gr",
+          image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=700&q=80",
+          description: "Haqiqiy Norvegiya syomga balig'i filesidan tayyorlangan premium steyk. Grilda sariyog' va limon sousi bilan qovuriladi.",
+          status: "AVAILABLE",
+          popular: true,
+          cookTime: "20 daqiqa"
+        },
+        {
+          id: "d6",
+          name: "Qarsildoq Zog'ora Baliq (Sazan)",
+          category: "fried",
+          categoryName: "Qovurilgan Baliq",
+          price: 78000,
+          weight: "600 gr",
+          image: "https://images.unsplash.com/photo-1580476262798-bddd9f4b7369?auto=format&fit=crop&w=700&q=80",
+          description: "O'zbekona uslubda maxsus qizil piyoz va oq sirka sousi bilan beriladigan qarsildoq qovurilgan zog'ora balig'i.",
+          status: "AVAILABLE",
+          popular: true,
+          cookTime: "20-25 daqiqa"
+        },
+        {
+          id: "d7",
+          name: "Grilda Limo Baliq (Som)",
+          category: "grilled",
+          categoryName: "Gril Baliq",
+          price: 92000,
+          weight: "500 gr",
+          image: "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=700&q=80",
+          description: "Suyaksiz mayin som go'shti, cho'g'da maxsus marinad qilinib anor sharbati va sumax sepib pishiriladi.",
+          status: "AVAILABLE",
+          popular: false,
+          cookTime: "25 daqiqa"
+        },
+        {
+          id: "d8",
+          name: "Dengiz Baliq Kabobi",
+          category: "grilled",
+          categoryName: "Gril Baliq",
+          price: 88000,
+          weight: "350 gr",
+          image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=700&q=80",
+          description: "Sixga tizilgan shira to'la baliq lahm go'shti, pomidor va shirin bulg'or qalampiri bilan ochiq olovda qovuriladi.",
+          status: "AVAILABLE",
+          popular: false,
+          cookTime: "20 daqiqa"
+        },
+        {
+          id: "d9",
+          name: "Qirollik Dengiz Assortisi",
+          category: "seafood",
+          categoryName: "Dengiz Mahsulotlari",
+          price: 340000,
+          weight: "1200 gr",
+          image: "https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?auto=format&fit=crop&w=700&q=80",
+          description: "Katta ziyofatlar uchun maxsus lagan: qovurilgan forel, qisqichbaqalar, kalmar halqalari, midiyalar va souslar to'plami.",
+          status: "AVAILABLE",
+          popular: true,
+          cookTime: "30-35 daqiqa"
+        },
+        {
+          id: "d10",
+          name: "Qisqichbaqa Qovurmasi (Tiger Prawns)",
+          category: "seafood",
+          categoryName: "Dengiz Mahsulotlari",
+          price: 140000,
+          weight: "320 gr",
+          image: "https://images.unsplash.com/photo-1559742811-822873691df8?auto=format&fit=crop&w=700&q=80",
+          description: "Sariyog' va sarimsoqpiyoz bilan tavada qovurilgan yo'lbars qisqichbaqalari. Shirin chili sousi bilan tortiladi.",
+          status: "AVAILABLE",
+          popular: false,
+          cookTime: "15 daqiqa"
+        },
+        {
+          id: "d11",
+          name: "Osetrina / Oltin Baliqcha Maxsus",
+          category: "special",
+          categoryName: "Maxsus Taom",
+          price: 280000,
+          weight: "800 gr",
+          image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=700&q=80",
+          description: "Restoranning eng sara taomi: osetrina balig'i qaymoqli ikra sousida pishiriladi. Qirollarga munosib betakror ta'm.",
+          status: "AVAILABLE",
+          popular: true,
+          cookTime: "35 daqiqa"
+        },
+        {
+          id: "d12",
+          name: "Baxoriy Baliq Salati",
+          category: "soup",
+          categoryName: "Salat & Qo'shimcha",
+          price: 48000,
+          weight: "300 gr",
+          image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=700&q=80",
+          description: "Dudlangan qizil baliq bo'laklari, yangi avokado, rukola va zaytun moyi bilan to'yintirilgan salqin salat.",
+          status: "AVAILABLE",
+          popular: false,
+          cookTime: "10 daqiqa"
+        }
+      ],
+      roomOrders: {
+        r101: [
+          { id: "ord-1", dishId: "d1", name: "Qovurilgan Oq Baliq (Sudak)", price: 85000, quantity: 2, weight: "500 gr", time: "13:20", status: "completed" },
+          { id: "ord-2", dishId: "d5", name: "Norvegiya Qizil Baliq Steyki (Salmon)", price: 165000, quantity: 2, weight: "350 gr", time: "13:20", status: "completed" },
+          { id: "ord-3", dishId: "d4", name: "Baliqli Qirollik Uxa Sho'rvasi", price: 45000, quantity: 3, weight: "400 gr", time: "13:22", status: "completed" },
+          { id: "ord-4", dishId: "d12", name: "Baxoriy Baliq Salati", price: 48000, quantity: 2, weight: "300 gr", time: "13:25", status: "completed" }
+        ],
+        r103: [
+          { id: "ord-5", dishId: "d2", name: "Grilda Pishirilgan Forel", price: 115000, quantity: 2, weight: "450 gr", time: "13:45", status: "preparing" },
+          { id: "ord-6", dishId: "d3", name: "Tandirda Pishirilgan Sazan", price: 95000, quantity: 1, weight: "650 gr", time: "13:45", status: "preparing" },
+          { id: "ord-7", dishId: "d8", name: "Dengiz Baliq Kabobi", price: 88000, quantity: 2, weight: "350 gr", time: "13:48", status: "preparing" }
+        ],
+        r107: [
+          { id: "ord-8", dishId: "d6", name: "Qarsildoq Zog'ora Baliq (Sazan)", price: 78000, quantity: 3, weight: "600 gr", time: "12:55", status: "pending" },
+          { id: "ord-9", dishId: "d7", name: "Grilda Limo Baliq (Som)", price: 92000, quantity: 2, weight: "500 gr", time: "12:55", status: "pending" },
+          { id: "ord-10", dishId: "d4", name: "Baliqli Qirollik Uxa Sho'rvasi", price: 45000, quantity: 4, weight: "400 gr", time: "12:58", status: "pending" }
+        ]
+      },
+      reservations: [
+        {
+          id: "res-104",
+          roomId: "r104",
+          roomNumber: "104",
+          roomName: "Atlantika Katta Zali",
+          customerName: "Nodira Karimova",
+          phone: "+998 93 555-12-34",
+          date: "2026-11-11",
+          displayDate: "Bugun",
+          time: "19:00",
+          guests: 20,
+          deposit: 500000,
+          notes: "Tug'ilgan kun tantanasi, dasturxonga mevalar va ichimliklar oldindan qo'yilsin.",
+          status: "confirmed",
+          createdAt: "2026-11-11 10:30"
+        },
+        {
+          id: "res-108",
+          roomId: "r108",
+          roomNumber: "108",
+          roomName: "Tinch Okean VIP",
+          customerName: "Rustam Rahimov",
+          phone: "+998 91 777-65-43",
+          date: "2026-11-11",
+          displayDate: "Bugun",
+          time: "20:30",
+          guests: 14,
+          deposit: 1000000,
+          notes: "Biznes muzokara kechki ovqati.",
+          status: "confirmed",
+          createdAt: "2026-11-11 11:15"
+        },
+        {
+          id: "res-102",
+          roomId: "r102",
+          roomNumber: "102",
+          roomName: "Moviy To'lqin",
+          customerName: "Jamshid Temirov",
+          phone: "+998 94 666-44-33",
+          date: "2026-11-12",
+          displayDate: "Ertaga",
+          time: "18:00",
+          guests: 6,
+          deposit: 200000,
+          notes: "Oila a'zolari bilan kechki ovqat.",
+          status: "confirmed",
+          createdAt: "2026-11-11 12:00"
+        }
+      ],
+      salesHistory: [
+        {
+          id: "bill-1001",
+          roomNumber: "105",
+          roomName: "Oltin Baliqcha",
+          customerName: "Shuhrat Bekmurodov",
+          date: "2026-11-11",
+          time: "12:30",
+          items: [
+            { name: "Norvegiya Qizil Baliq Steyki", quantity: 3, price: 165000 },
+            { name: "Qirollik Dengiz Assortisi", quantity: 1, price: 340000 },
+            { name: "Baliqli Qirollik Uxa Sho'rvasi", quantity: 3, price: 45000 }
+          ],
+          subtotal: 970000,
+          serviceCharge: 97000,
+          total: 1067000,
+          paymentMethod: "Karta (Uzcard)"
+        },
+        {
+          id: "bill-1002",
+          roomNumber: "102",
+          roomName: "Moviy To'lqin",
+          customerName: "Davron Salimov",
+          date: "2026-11-11",
+          time: "11:45",
+          items: [
+            { name: "Qovurilgan Oq Baliq (Sudak)", quantity: 2, price: 85000 },
+            { name: "Grilda Forel Baliq", quantity: 2, price: 110000 },
+            { name: "Baxoriy Baliq Salati", quantity: 2, price: 48000 }
+          ],
+          subtotal: 486000,
+          serviceCharge: 48600,
+          total: 534600,
+          paymentMethod: "Click"
+        }
+      ]
+    };
+  </script>
+
+  <!-- External Script fallback & Inline logic -->
+  <script type="text/babel" src="app.js"></script>
+</body>
+</html>
+
