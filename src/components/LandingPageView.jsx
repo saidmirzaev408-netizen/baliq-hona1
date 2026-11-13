@@ -31,7 +31,7 @@ export default function LandingPageView({
     { id: 'soup', name: "Baliq Sho'rva (Uxa)", icon: '🍲', count: dishes.filter(d => d.category === 'soup').length },
     { id: 'baked', name: 'Dimlama Baliq', icon: '🥘', count: dishes.filter(d => d.category === 'baked').length },
     { id: 'seafood', name: 'Dengiz Mahsulotlari', icon: '🦐', count: dishes.filter(d => d.category === 'seafood').length },
-    { id: 'kebab', name: 'Baliq Kabob', icon: '🍢', count: dishes.filter(d => d.category === 'kebab').length },
+    { id: 'special', name: 'Maxsus Taomlar', icon: '👑', count: dishes.filter(d => d.category === 'special').length },
     { id: 'salad', name: 'Sarxil Salatlar', icon: '🥗', count: dishes.filter(d => d.category === 'salad').length },
     { id: 'drink', name: 'Ichimliklar', icon: '🍹', count: dishes.filter(d => d.category === 'drink').length },
   ];
@@ -157,10 +157,10 @@ export default function LandingPageView({
   };
 
   return (
-    <div className="min-h-screen bg-[#070d1e] text-slate-100 font-sans selection:bg-turquoise-500 selection:text-navy-950">
+    <div className="min-h-screen bg-black text-slate-100 font-sans selection:bg-turquoise-500 selection:text-black">
       
       {/* 1. TOP ANNOUNCEMENT BAR */}
-      <div className="bg-gradient-to-r from-ocean-900 via-navy-900 to-ocean-900 text-xs text-slate-300 py-2 px-4 border-b border-white/5 flex flex-wrap items-center justify-between gap-2">
+      <div className="bg-[#08090c] text-xs text-slate-300 py-2 px-4 border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <span className="flex items-center gap-1.5 text-turquoise-400 font-semibold">
@@ -528,7 +528,7 @@ export default function LandingPageView({
                 {/* Photo with badges */}
                 <div className="relative h-48 overflow-hidden bg-navy-950">
                   <img
-                    src={dish.photo}
+                    src={dish.photo || dish.image}
                     alt={dish.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
@@ -536,11 +536,11 @@ export default function LandingPageView({
                   
                   {/* Grams Badge */}
                   <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-navy-950/80 backdrop-blur-md text-[11px] font-bold text-slate-300 border border-white/10">
-                    ⚖️ {dish.weightGrams} gr
+                    ⚖️ {dish.weightGrams ? `${dish.weightGrams} gr` : (dish.weight || '450 gr')}
                   </div>
 
                   {/* Hot Badge */}
-                  {dish.isSpecial && (
+                  {(dish.isSpecial || dish.popular) && (
                     <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-amber-500/90 text-navy-950 text-[10px] font-black uppercase tracking-wider shadow-lg">
                       👑 Chef Tavsiyasi
                     </div>
@@ -621,7 +621,7 @@ export default function LandingPageView({
                     {/* Room Photo */}
                     <div className="relative h-44 overflow-hidden bg-navy-950">
                       <img
-                        src={room.photo}
+                        src={room.photo || room.image}
                         alt={room.name}
                         className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
                       />
@@ -666,7 +666,7 @@ export default function LandingPageView({
 
                       {/* Amenities pills */}
                       <div className="mt-3 flex flex-wrap gap-1">
-                        {room.amenities.slice(0, 3).map((am, i) => (
+                        {(room.amenities || []).slice(0, 3).map((am, i) => (
                           <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-navy-800 text-slate-300 border border-white/5">
                             {am}
                           </span>

@@ -574,7 +574,7 @@ export default function App() {
       )}
 
       {/* Top Banner: Mode & User Bar */}
-      <div className="bg-gradient-to-r from-ocean-950 via-navy-900 to-ocean-950 border-b border-turquoise-500/20 px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-2 z-30 relative">
+      <div className="bg-gradient-to-r from-black via-[#0b0c10] to-black border-b border-white/10 px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-2 z-30 relative">
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -647,8 +647,8 @@ export default function App() {
         <div className="flex h-[calc(100vh-41px)] overflow-hidden">
 
           {/* Sidebar */}
-          <aside className={`fixed lg:static top-0 bottom-0 left-0 w-64 bg-navy-900 border-r border-white/10 z-40 flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-            <div className="h-20 px-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-[#061020] via-navy-900 to-[#071126]">
+          <aside className={`fixed lg:static top-0 bottom-0 left-0 w-64 bg-[#08090c] border-r border-white/10 z-40 flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+            <div className="h-20 px-4 border-b border-white/10 flex items-center justify-between bg-[#040507]">
               {/* FISH HOUSE Logo */}
               <FishHouseLogo className="h-12" textSize="text-xl" showSubtitle={true} />
               <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-white ml-2">
@@ -662,11 +662,11 @@ export default function App() {
               </div>
               {[
                 { id: 'dashboard', label: 'Boshqaruv Paneli', icon: Icons.LayoutDashboard },
-                { id: 'rooms', label: 'Xonalar va Kabinetlar', icon: Icons.DoorClosed, badge: metrics.occupiedRooms, badgeColor: 'bg-red-500 text-white' },
+                { id: 'rooms', label: 'Xonalar va Kabinetlar', icon: Icons.DoorClosed, badge: metrics.occupiedRooms, badgeColor: 'bg-red-500/20 text-red-300 border border-red-500/40' },
                 { id: 'menu', label: 'Baliq Taomlari', icon: Icons.Fish },
-                { id: 'reservations', label: 'Band Qilinganlar', icon: Icons.Calendar, badge: metrics.reservedRooms, badgeColor: 'bg-amber-500 text-navy-950' },
-                { id: 'orders', label: 'Oshxona Buyurtmalari', icon: Icons.ChefHat, badge: allKitchenOrders.filter(o => o.status === 'pending').length, badgeColor: 'bg-cyan-500 text-navy-950' },
-                { id: 'bills', label: 'Umumiy Hisob-Kitob', icon: Icons.Receipt, badge: metrics.occupiedRooms, badgeColor: 'bg-emerald-500 text-navy-950' },
+                { id: 'reservations', label: 'Band Qilinganlar', icon: Icons.Calendar, badge: metrics.reservedRooms, badgeColor: 'bg-amber-500/20 text-amber-300 border border-amber-500/40' },
+                { id: 'orders', label: 'Oshxona Buyurtmalari', icon: Icons.ChefHat, badge: allKitchenOrders.filter(o => o.status === 'pending').length, badgeColor: 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' },
+                { id: 'bills', label: 'Umumiy Hisob-Kitob', icon: Icons.Receipt, badge: metrics.occupiedRooms, badgeColor: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' },
                 { id: 'reports', label: 'Hisobotlar', icon: Icons.BarChart3 },
                 { id: 'settings', label: 'Sozlamalar', icon: Icons.Settings }
               ].map(item => {
@@ -680,17 +680,17 @@ export default function App() {
                       setActiveTab(item.id);
                       setSidebarOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all group ${isActive
-                      ? 'bg-gradient-to-r from-ocean-700/80 to-turquoise-600/70 text-white shadow-glow-cyan font-semibold border border-turquoise-400/40'
-                      : 'text-slate-300 hover:bg-navy-800/80 hover:text-white border border-transparent'
+                    className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm transition-all duration-200 group ${isActive
+                      ? 'bg-gradient-to-r from-turquoise-500/20 via-turquoise-500/10 to-transparent border-l-4 border-turquoise-400 text-white font-bold shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_0_15px_rgba(6,182,212,0.15)]'
+                      : 'text-slate-400 hover:text-white hover:bg-white/[0.04] border-l-4 border-transparent font-medium'
                       }`}
                   >
                     <div className="flex items-center space-x-3">
-                      <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? 'text-turquoise-200' : 'text-slate-400'}`} />
+                      <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? 'text-turquoise-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
                       <span>{item.label}</span>
                     </div>
                     {item.badge !== undefined && item.badge > 0 && (
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${item.badgeColor || 'bg-turquoise-500 text-navy-950'}`}>
+                      <span className={`text-[11px] font-black px-2 py-0.5 rounded-full ${item.badgeColor || 'bg-turquoise-500/20 text-turquoise-300 border border-turquoise-500/40'}`}>
                         {item.badge}
                       </span>
                     )}
@@ -700,23 +700,34 @@ export default function App() {
             </div>
 
             {/* Room Status Widget */}
-            <div className="p-4 mx-3 mb-4 rounded-xl bg-navy-850/90 border border-white/5 text-xs space-y-2">
+            <div className="p-4 mx-3 mb-4 rounded-2xl bg-gradient-to-b from-[#0e1117] to-[#08090d] border border-white/[0.08] text-xs space-y-3 shadow-xl">
               <div className="flex items-center justify-between text-slate-400 font-semibold">
-                <span>Xonalar Holati</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-turquoise-400"></span>
+                  <span>Xonalar Holati</span>
+                </span>
                 <span className="text-white font-bold">{metrics.totalRooms} ta</span>
               </div>
-              <div className="grid grid-cols-3 gap-1 pt-1 text-center">
-                <div className="p-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/30">
-                  <span className="block text-emerald-400 font-extrabold text-sm">{metrics.availableRooms}</span>
-                  <span className="text-[10px] text-emerald-200">Bo'sh</span>
+
+              {/* Segmented Progress Bar */}
+              <div className="h-2 w-full rounded-full bg-white/5 flex overflow-hidden p-0.5 gap-0.5">
+                <div style={{ width: `${(metrics.availableRooms / (metrics.totalRooms || 1)) * 100}%` }} className="h-full bg-emerald-500 rounded-full transition-all" title="Bo'sh"></div>
+                <div style={{ width: `${(metrics.occupiedRooms / (metrics.totalRooms || 1)) * 100}%` }} className="h-full bg-rose-500 rounded-full transition-all" title="Zanit"></div>
+                <div style={{ width: `${(metrics.reservedRooms / (metrics.totalRooms || 1)) * 100}%` }} className="h-full bg-amber-400 rounded-full transition-all" title="Band"></div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-1.5 pt-0.5 text-center">
+                <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <span className="block text-emerald-400 font-black text-sm">{metrics.availableRooms}</span>
+                  <span className="text-[10px] text-emerald-300 font-medium">Bo'sh</span>
                 </div>
-                <div className="p-1.5 rounded-lg bg-red-950/80 border border-red-500/40">
-                  <span className="block text-red-400 font-extrabold text-sm">{metrics.occupiedRooms}</span>
-                  <span className="text-[10px] text-red-200 font-bold">Zanit</span>
+                <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30">
+                  <span className="block text-rose-400 font-black text-sm">{metrics.occupiedRooms}</span>
+                  <span className="text-[10px] text-rose-300 font-bold">Zanit</span>
                 </div>
-                <div className="p-1.5 rounded-lg bg-amber-950/60 border border-amber-500/30">
-                  <span className="block text-amber-400 font-extrabold text-sm">{metrics.reservedRooms}</span>
-                  <span className="text-[10px] text-amber-200">Band</span>
+                <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                  <span className="block text-amber-400 font-black text-sm">{metrics.reservedRooms}</span>
+                  <span className="text-[10px] text-amber-300 font-medium">Band</span>
                 </div>
               </div>
             </div>
@@ -726,48 +737,54 @@ export default function App() {
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
             {/* Topbar */}
-            <header className="h-16 px-4 sm:px-8 border-b border-white/10 bg-navy-900/90 backdrop-blur-md flex items-center justify-between z-20">
+            <header className="h-16 px-4 sm:px-8 border-b border-white/[0.08] bg-[#07090d]/90 backdrop-blur-xl flex items-center justify-between z-20">
               <div className="flex items-center space-x-3">
-                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-2 rounded-lg bg-navy-800 text-slate-300">
+                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-2 rounded-xl bg-navy-850 border border-white/10 text-slate-300">
                   <Icons.Menu className="w-5 h-5" />
                 </button>
-                <h1 className="text-lg sm:text-xl font-bold text-white tracking-wide">
-                  {activeTab === 'dashboard' ? 'Boshqaruv Paneli' :
-                    activeTab === 'rooms' ? 'Xonalar va Kabinetlar' :
-                      activeTab === 'room-detail' ? 'Xona Tafsilotlari & Hisob' :
-                        activeTab === 'menu' ? 'Baliq Taomlari Menyusi' :
-                          activeTab === 'reservations' ? 'Band Qilingan Xonalar' :
-                            activeTab === 'orders' ? 'Oshxona Buyurtmalari Nazorati' :
-                              activeTab === 'bills' ? 'Umumiy Hisob-Kitob & Cheklar' :
-                                activeTab === 'reports' ? 'Hisobotlar va Statistika' : 'Tizim Sozlamalari'}
-                </h1>
+                <div>
+                  <h1 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
+                    {activeTab === 'dashboard' ? 'Boshqaruv Paneli' :
+                      activeTab === 'rooms' ? 'Xonalar va Kabinetlar' :
+                        activeTab === 'room-detail' ? 'Xona Tafsilotlari & Hisob' :
+                          activeTab === 'menu' ? 'Baliq Taomlari Menyusi' :
+                            activeTab === 'reservations' ? 'Band Qilingan Xonalar' :
+                              activeTab === 'orders' ? 'Oshxona Buyurtmalari Nazorati' :
+                                activeTab === 'bills' ? 'Umumiy Hisob-Kitob & Cheklar' :
+                                  activeTab === 'reports' ? 'Hisobotlar va Statistika' : 'Tizim Sozlamalari'}
+                  </h1>
+                  <p className="text-[11px] text-slate-400 hidden sm:block">
+                    FISH HOUSE • Seafood Restaurant Management System
+                  </p>
+                </div>
               </div>
 
               <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-red-950/80 border border-red-500/40 text-red-400 text-xs font-semibold">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+                <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
                   <span>{metrics.occupiedRooms} ta xona ZANIT</span>
                 </div>
 
                 <button
                   onClick={() => setSoundEnabled(!soundEnabled)}
                   title={soundEnabled ? "Ovozni o'chirish" : "Ovozni yoqish"}
-                  className={`p-2 rounded-lg border ${soundEnabled ? 'bg-turquoise-500/10 border-turquoise-500/40 text-turquoise-400' : 'bg-navy-800 border-white/10 text-slate-400'}`}
+                  className={`p-2.5 rounded-xl border transition-all ${soundEnabled ? 'bg-turquoise-500/15 border-turquoise-500/40 text-turquoise-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]' : 'bg-navy-900 border-white/10 text-slate-500 hover:text-slate-300'}`}
                 >
                   {soundEnabled ? <Icons.Volume2 className="w-4 h-4" /> : <Icons.VolumeX className="w-4 h-4" />}
                 </button>
 
                 <button
                   onClick={() => setBookingModal({ isOpen: true, targetRoomId: '' })}
-                  className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-turquoise-500 to-ocean-600 hover:from-turquoise-400 text-navy-950 font-bold text-xs sm:text-sm shadow-glow-cyan"
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-turquoise-500 to-ocean-500 hover:from-turquoise-400 hover:to-ocean-400 text-navy-950 font-black text-xs sm:text-sm shadow-glow-cyan flex items-center gap-2 transition-all transform hover:scale-[1.02]"
                 >
-                  + Stol Band Qilish
+                  <Icons.Plus className="w-4 h-4" />
+                  <span>+ Stol Band Qilish</span>
                 </button>
               </div>
             </header>
 
             {/* Content Body */}
-            <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-navy-950 via-navy-900 to-navy-950">
+            <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-black">
 
               {/* TAB 1: DASHBOARD */}
               {activeTab === 'dashboard' && (
@@ -775,22 +792,113 @@ export default function App() {
                   {/* 6 Stat Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     {[
-                      { title: "Jami Xonalar", value: `${metrics.totalRooms} ta`, icon: Icons.DoorClosed, color: "text-blue-400" },
-                      { title: "Bo'sh Xonalar", value: `${metrics.availableRooms} ta`, icon: Icons.Check, color: "text-emerald-400" },
-                      { title: "Band Xonalar (ZANIT)", value: `${metrics.occupiedRooms} ta`, icon: Icons.Users, color: "text-red-400", pulse: true },
-                      { title: "Rezervatsiyalar", value: `${metrics.reservedRooms} ta`, icon: Icons.Calendar, color: "text-amber-400" },
-                      { title: "Bugungi Tushum", value: formatUZS(metrics.todayRevenue), icon: Icons.TrendingUp, color: "text-cyan-300" },
-                      { title: "Jami Buyurtmalar", value: `${metrics.totalFoodOrders} ta taom`, icon: Icons.Utensils, color: "text-indigo-400" }
+                      {
+                        title: "Bugungi Tushum",
+                        value: formatUZS(metrics.todayRevenue),
+                        sub: "Naqd & Karta to'lovlari",
+                        badge: "+18.4% bugun",
+                        badgeColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+                        icon: Icons.TrendingUp,
+                        accent: "from-cyan-500 to-blue-500",
+                        glowColor: "rgba(6,182,212,0.25)",
+                        iconColor: "text-cyan-300",
+                        iconBg: "bg-cyan-500/10 border-cyan-500/30"
+                      },
+                      {
+                        title: "Band Xonalar (ZANIT)",
+                        value: `${metrics.occupiedRooms} ta`,
+                        sub: `Bandlik: ${Math.round((metrics.occupiedRooms / (metrics.totalRooms || 1)) * 100)}% to'lgan`,
+                        badge: "🔴 Jonli band",
+                        badgeColor: "bg-rose-500/15 text-rose-400 border-rose-500/40 animate-pulse",
+                        icon: Icons.Users,
+                        accent: "from-rose-500 to-red-600",
+                        glowColor: "rgba(244,63,94,0.3)",
+                        iconColor: "text-rose-400",
+                        iconBg: "bg-rose-500/10 border-rose-500/30"
+                      },
+                      {
+                        title: "Bo'sh Xonalar",
+                        value: `${metrics.availableRooms} ta`,
+                        sub: "Mehmon qabuliga tayyor",
+                        badge: "🟢 Bo'sh stol",
+                        badgeColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+                        icon: Icons.Check,
+                        accent: "from-emerald-500 to-teal-600",
+                        glowColor: "rgba(16,185,129,0.25)",
+                        iconColor: "text-emerald-400",
+                        iconBg: "bg-emerald-500/10 border-emerald-500/30"
+                      },
+                      {
+                        title: "Rezervatsiyalar",
+                        value: `${metrics.reservedRooms} ta`,
+                        sub: "Bugun kutilayotgan mehmonlar",
+                        badge: "🟡 Band qilingan",
+                        badgeColor: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+                        icon: Icons.Calendar,
+                        accent: "from-amber-500 to-yellow-600",
+                        glowColor: "rgba(245,158,11,0.25)",
+                        iconColor: "text-amber-300",
+                        iconBg: "bg-amber-500/10 border-amber-500/30"
+                      },
+                      {
+                        title: "Jami Buyurtmalar",
+                        value: `${metrics.totalFoodOrders} ta taom`,
+                        sub: `${allKitchenOrders.filter(o => o.status === 'pending').length} ta oshxonada kutilmoqda`,
+                        badge: "🍳 Faol buyurtma",
+                        badgeColor: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30",
+                        icon: Icons.Utensils,
+                        accent: "from-indigo-500 to-purple-600",
+                        glowColor: "rgba(99,102,241,0.25)",
+                        iconColor: "text-indigo-300",
+                        iconBg: "bg-indigo-500/10 border-indigo-500/30"
+                      },
+                      {
+                        title: "Jami Xonalar",
+                        value: `${metrics.totalRooms} ta`,
+                        sub: "VIP xonalar va banket zallari",
+                        badge: "Barcha xonalar",
+                        badgeColor: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+                        icon: Icons.DoorClosed,
+                        accent: "from-blue-500 to-cyan-600",
+                        glowColor: "rgba(59,130,246,0.25)",
+                        iconColor: "text-blue-300",
+                        iconBg: "bg-blue-500/10 border-blue-500/30"
+                      }
                     ].map((c, i) => {
                       const Icon = c.icon;
                       return (
-                        <div key={i} className="glass-card rounded-2xl p-5 border border-white/10 flex items-center justify-between hover:border-turquoise-500/40 transition-all">
-                          <div>
-                            <p className="text-xs uppercase text-slate-400 font-semibold">{c.title}</p>
-                            <p className={`text-2xl font-extrabold font-display mt-2 ${c.color} ${c.pulse ? 'animate-pulse' : ''}`}>{c.value}</p>
-                          </div>
-                          <div className="p-3 rounded-xl bg-navy-900 border border-white/10 text-white">
-                            <Icon className="w-6 h-6" />
+                        <div
+                          key={i}
+                          className="relative rounded-2xl p-5 bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border border-white/[0.08] hover:border-white/20 transition-all duration-300 group overflow-hidden shadow-2xl hover:-translate-y-1"
+                        >
+                          {/* Top Accent Gradient Border */}
+                          <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${c.accent} opacity-80 group-hover:opacity-100 transition-opacity`}></div>
+
+                          {/* Ambient radial blur glow */}
+                          <div
+                            className="absolute -right-6 -bottom-6 w-28 h-28 rounded-full blur-2xl pointer-events-none opacity-20 group-hover:opacity-40 transition-opacity"
+                            style={{ backgroundColor: c.glowColor }}
+                          ></div>
+
+                          <div className="relative z-10 flex items-start justify-between">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">{c.title}</p>
+                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full border ${c.badgeColor}`}>
+                                  {c.badge}
+                                </span>
+                              </div>
+                              <p className="text-2xl sm:text-3xl font-black font-sans tracking-tight text-white mt-2.5">
+                                {c.value}
+                              </p>
+                              <p className="text-[11px] text-slate-400 mt-1 font-medium">
+                                {c.sub}
+                              </p>
+                            </div>
+
+                            <div className={`p-3 rounded-2xl border ${c.iconBg} ${c.iconColor} shadow-lg transition-transform group-hover:scale-110 duration-300`}>
+                              <Icon className="w-5 h-5" />
+                            </div>
                           </div>
                         </div>
                       );
@@ -798,34 +906,109 @@ export default function App() {
                   </div>
 
                   {/* Quick Room Grid Monitor */}
-                  <div className="glass-card rounded-2xl p-6 border border-white/10 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-white text-base flex items-center gap-2">
-                        <Icons.DoorClosed className="w-5 h-5 text-turquoise-400" />
-                        <span>Xonalar Holati (Jonli Monitor)</span>
-                      </h3>
-                      <button onClick={() => setActiveTab('rooms')} className="text-xs text-turquoise-400 hover:underline">Barchasini ko'rish &rarr;</button>
+                  <div className="rounded-2xl p-6 bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border border-white/[0.08] space-y-4 shadow-2xl relative overflow-hidden">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/[0.06]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-turquoise-500/10 border border-turquoise-500/30 flex items-center justify-center text-turquoise-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                          <Icons.DoorClosed className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-black text-white text-base tracking-tight flex items-center gap-2">
+                            <span>Xonalar Holati (Jonli Monitor)</span>
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                          </h3>
+                          <p className="text-xs text-slate-400">
+                            Stollar va VIP xonalarning real vaqtdagi bandlik ko'rsatkichi
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 text-xs text-slate-400 bg-black/40 px-3 py-1.5 rounded-xl border border-white/5">
+                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400"></span> {metrics.availableRooms} Bo'sh</span>
+                          <span className="text-white/20">•</span>
+                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span> {metrics.occupiedRooms} Zanit</span>
+                          <span className="text-white/20">•</span>
+                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400"></span> {metrics.reservedRooms} Band</span>
+                        </div>
+                        <button onClick={() => setActiveTab('rooms')} className="text-xs font-bold text-turquoise-400 hover:text-turquoise-300 transition-colors flex items-center gap-1">
+                          <span>Barchasini ko'rish</span>
+                          <span>&rarr;</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
                       {rooms.map(room => {
                         const isOccupied = room.status === 'OCCUPIED';
                         const isReserved = room.status === 'RESERVED';
+                        const isAvailable = room.status === 'AVAILABLE';
+                        const roomTotal = calcRoomTotal(room.id);
+
                         return (
                           <button
                             key={room.id}
                             onClick={() => handleOpenRoomDetails(room.id)}
-                            className={`p-3 rounded-xl border text-left transition-all hover:scale-105 ${isOccupied ? 'bg-red-950/70 border-red-500/60 shadow-glow-red' : isReserved ? 'bg-amber-950/50 border-amber-500/40' : 'bg-navy-850/80 border-emerald-500/40'
+                            className={`group relative p-3.5 rounded-2xl border text-left transition-all duration-300 flex flex-col justify-between hover:scale-[1.03] hover:-translate-y-1 ${isOccupied
+                                ? 'bg-gradient-to-b from-rose-950/40 via-[#10080a] to-[#070507] border-rose-500/50 shadow-[0_4px_20px_-2px_rgba(239,68,68,0.25)] hover:border-rose-400'
+                                : isReserved
+                                  ? 'bg-gradient-to-b from-amber-950/30 via-[#100c07] to-[#070605] border-amber-500/40 hover:border-amber-400'
+                                  : 'bg-gradient-to-b from-emerald-950/20 via-[#080d0b] to-[#050806] border-emerald-500/30 hover:border-emerald-400/80 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]'
                               }`}
                           >
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-xs font-bold text-slate-300">№{room.number}</span>
-                              <span className={`w-2 h-2 rounded-full ${isOccupied ? 'bg-red-500 animate-pulse' : isReserved ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
+                            {/* Header: Room Number Pill + Beacon */}
+                            <div>
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="px-2 py-0.5 rounded-lg bg-white/5 border border-white/10 text-[11px] font-mono font-black text-slate-200">
+                                  №{room.number}
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  {isOccupied && (
+                                    <span className="relative flex h-2 w-2">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                                    </span>
+                                  )}
+                                  {isReserved && <span className="h-2 w-2 rounded-full bg-amber-400"></span>}
+                                  {isAvailable && <span className="h-2 w-2 rounded-full bg-emerald-400"></span>}
+                                </div>
+                              </div>
+
+                              {/* Room Name */}
+                              <p className="text-xs font-extrabold text-white group-hover:text-turquoise-300 transition-colors truncate">
+                                {room.name}
+                              </p>
+                              <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                                {room.type} • {room.seats} kishi
+                              </p>
                             </div>
-                            <p className="text-xs font-bold text-white truncate">{room.name}</p>
-                            <p className="text-[10px] mt-1 font-extrabold">
-                              {isOccupied ? <span className="text-red-400 animate-pulse">ZANIT</span> : isReserved ? <span className="text-amber-300">BAND</span> : <span className="text-emerald-300">BO'SH</span>}
-                            </p>
+
+                            {/* Status Badge Bottom */}
+                            <div className="mt-3 pt-2 border-t border-white/5">
+                              {isOccupied ? (
+                                <div className="space-y-1">
+                                  <div className="px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-500/40 text-rose-300 font-black text-[9px] tracking-wider uppercase flex items-center justify-between">
+                                    <span>ZANIT</span>
+                                    <span className="font-mono text-slate-200">{room.customer?.checkInTime || '13:00'}</span>
+                                  </div>
+                                  {roomTotal > 0 && (
+                                    <p className="text-[10px] font-mono font-bold text-amber-400 text-right truncate">
+                                      {formatUZS(roomTotal)}
+                                    </p>
+                                  )}
+                                </div>
+                              ) : isReserved ? (
+                                <div className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-[9px] tracking-wider uppercase flex items-center justify-between">
+                                  <span>BAND</span>
+                                  <span className="font-mono">{room.reservation?.time || '19:00'}</span>
+                                </div>
+                              ) : (
+                                <div className="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold text-[9px] tracking-wider uppercase flex items-center justify-between">
+                                  <span>BO'SH</span>
+                                  <span className="text-[8px] text-emerald-300/60 font-semibold">Tayyor</span>
+                                </div>
+                              )}
+                            </div>
                           </button>
                         );
                       })}
@@ -835,49 +1018,151 @@ export default function App() {
                   {/* Active Orders & Fast Actions */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Active Tables Overview */}
-                    <div className="glass-card rounded-2xl p-6 border border-white/10 space-y-3">
-                      <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                        <Icons.Receipt className="w-4 h-4 text-emerald-400" />
-                        <span>Band Xonalar va Jonli Hisoblar</span>
-                      </h3>
+                    <div className="rounded-2xl p-6 bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border border-white/[0.08] space-y-4 shadow-2xl relative">
+                      <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                            <Icons.Receipt className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-black text-white text-sm tracking-tight">
+                              Band Xonalar va Jonli Hisoblar
+                            </h3>
+                            <p className="text-[11px] text-slate-400">
+                              Hozirda {rooms.filter(r => r.status === 'OCCUPIED').length} ta xona xizmatda
+                            </p>
+                          </div>
+                        </div>
+                        <button onClick={() => setActiveTab('bills')} className="text-xs font-bold text-turquoise-400 hover:text-turquoise-300">
+                          Barchasi &rarr;
+                        </button>
+                      </div>
+
                       {rooms.filter(r => r.status === 'OCCUPIED').length === 0 ? (
-                        <p className="text-xs text-slate-400 py-4 text-center">Hozirda barcha xonalar bo'sh.</p>
+                        <div className="text-center py-8 text-slate-400 text-xs space-y-2">
+                          <div className="w-12 h-12 rounded-full bg-white/5 mx-auto flex items-center justify-center text-slate-500">
+                            <Icons.Receipt className="w-6 h-6" />
+                          </div>
+                          <p className="font-medium">Hozirda barcha xonalar bo'sh.</p>
+                          <p className="text-[11px] text-slate-500">Mehmon kelganda xonani ochishingiz mumkin.</p>
+                        </div>
                       ) : (
-                        <div className="space-y-2">
-                          {rooms.filter(r => r.status === 'OCCUPIED').map(room => (
-                            <div key={room.id} className="p-3 rounded-xl bg-navy-900 border border-white/5 flex items-center justify-between text-xs">
-                              <div>
-                                <span className="font-bold text-white">№{room.number} – {room.name}</span>
-                                <p className="text-[10px] text-slate-400">Mehmon: {room.customer?.name} &bull; {room.customer?.checkInTime}</p>
+                        <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                          {rooms.filter(r => r.status === 'OCCUPIED').map(room => {
+                            const rTotal = calcRoomTotal(room.id);
+                            const ordersCount = (roomOrders[room.id] || []).reduce((sum, item) => sum + item.quantity, 0);
+
+                            return (
+                              <div
+                                key={room.id}
+                                className="p-3.5 rounded-2xl bg-[#0e111a]/80 border border-white/[0.07] hover:border-turquoise-500/40 flex items-center justify-between gap-3 transition-all duration-200 group"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-950 to-navy-950 border border-rose-500/40 flex flex-col items-center justify-center text-white font-mono font-black text-xs shadow-md">
+                                    <span>№{room.number}</span>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping"></span>
+                                  </div>
+                                  <div>
+                                    <span className="font-extrabold text-white text-xs sm:text-sm group-hover:text-turquoise-300 transition-colors">
+                                      {room.name}
+                                    </span>
+                                    <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                                      <span>👤 {room.customer?.name || 'Hurmatli Mehmon'}</span>
+                                      <span>•</span>
+                                      <span>⏱️ {room.customer?.checkInTime || '13:00'}</span>
+                                      {ordersCount > 0 && (
+                                        <>
+                                          <span>•</span>
+                                          <span className="text-turquoise-400 font-semibold">{ordersCount} ta taom</span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="text-right flex items-center gap-3">
+                                  <div>
+                                    <span className="block font-mono font-black text-sm sm:text-base text-amber-400 tracking-tight">
+                                      {formatUZS(rTotal)}
+                                    </span>
+                                    <span className="text-[10px] text-slate-500 block">Jami hisob</span>
+                                  </div>
+                                  <button
+                                    onClick={() => handleOpenRoomDetails(room.id)}
+                                    className="px-3 py-1.5 rounded-xl bg-turquoise-500/10 hover:bg-turquoise-500/20 text-turquoise-300 font-bold text-xs border border-turquoise-500/30 transition-all flex items-center gap-1"
+                                  >
+                                    <span>Hisob</span>
+                                    <span>&rarr;</span>
+                                  </button>
+                                </div>
                               </div>
-                              <div className="text-right">
-                                <span className="font-mono font-bold text-turquoise-300">{formatUZS(calcRoomTotal(room.id))}</span>
-                                <button onClick={() => handleOpenRoomDetails(room.id)} className="block text-[10px] text-turquoise-400 hover:underline">Hisobni ko'rish</button>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
 
                     {/* Quick Kitchen Alert */}
-                    <div className="glass-card rounded-2xl p-6 border border-white/10 space-y-3">
-                      <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                        <Icons.ChefHat className="w-4 h-4 text-cyan-400" />
-                        <span>Oshxonadagi Yangi Buyurtmalar</span>
-                      </h3>
+                    <div className="rounded-2xl p-6 bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border border-white/[0.08] space-y-4 shadow-2xl relative">
+                      <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                            <Icons.ChefHat className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-black text-white text-sm tracking-tight">
+                              Oshxonadagi Yangi Buyurtmalar
+                            </h3>
+                            <p className="text-[11px] text-slate-400">
+                              {allKitchenOrders.filter(o => o.status === 'pending').length} ta taom tayyorlashga kutilmoqda
+                            </p>
+                          </div>
+                        </div>
+                        <button onClick={() => setActiveTab('orders')} className="text-xs font-bold text-turquoise-400 hover:text-turquoise-300">
+                          Oshxonaga o'tish &rarr;
+                        </button>
+                      </div>
+
                       {allKitchenOrders.filter(o => o.status === 'pending').length === 0 ? (
-                        <p className="text-xs text-slate-400 py-4 text-center">Kutilayotgan yangi buyurtmalar yo'q.</p>
+                        <div className="text-center py-8 text-slate-400 text-xs space-y-2">
+                          <div className="w-12 h-12 rounded-full bg-white/5 mx-auto flex items-center justify-center text-slate-500">
+                            <Icons.ChefHat className="w-6 h-6" />
+                          </div>
+                          <p className="font-medium">Kutilayotgan yangi buyurtmalar yo'q.</p>
+                          <p className="text-[11px] text-slate-500">Oshxona barcha buyurtmalarni tayyorlab bo'lgan.</p>
+                        </div>
                       ) : (
-                        <div className="space-y-2">
-                          {allKitchenOrders.filter(o => o.status === 'pending').slice(0, 4).map(ord => (
-                            <div key={ord.id} className="p-3 rounded-xl bg-navy-900 border border-cyan-500/30 flex items-center justify-between text-xs">
-                              <div>
-                                <span className="font-bold text-white">№{ord.roomNumber} &bull; {ord.name} ({ord.quantity}x)</span>
-                                <p className="text-[10px] text-slate-400">{ord.time} da buyurtma berilgan</p>
+                        <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                          {allKitchenOrders.filter(o => o.status === 'pending').slice(0, 5).map(ord => (
+                            <div
+                              key={ord.id}
+                              className="p-3.5 rounded-2xl bg-[#0e111a]/80 border border-white/[0.07] hover:border-cyan-500/40 flex items-center justify-between gap-3 transition-all duration-200"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="px-2.5 py-1.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-mono font-bold text-xs">
+                                  №{ord.roomNumber}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-extrabold text-white text-xs sm:text-sm">
+                                      {ord.name}
+                                    </span>
+                                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-black border border-amber-500/30">
+                                      {ord.quantity}x
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-400 mt-0.5">
+                                    ⏱️ {ord.time} da buyurtma berilgan {ord.notes ? `• Izoh: ${ord.notes}` : ''}
+                                  </p>
+                                </div>
                               </div>
-                              <button onClick={() => handleUpdateOrderStatus(ord.roomId, ord.id, 'preparing')} className="px-2.5 py-1 rounded bg-cyan-500/20 text-cyan-300 font-bold text-[10px]">
-                                Tayyorlash &rarr;
+
+                              <button
+                                onClick={() => handleUpdateOrderStatus(ord.roomId, ord.id, 'preparing')}
+                                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-ocean-500 hover:from-cyan-400 hover:to-ocean-400 text-navy-950 font-black text-xs shadow-glow-cyan flex items-center gap-1.5 transition-all transform hover:scale-105 whitespace-nowrap"
+                              >
+                                <span>Tayyorlash</span>
+                                <span>&rarr;</span>
                               </button>
                             </div>
                           ))}
@@ -945,7 +1230,7 @@ export default function App() {
                         <div key={room.id} className="rounded-2xl overflow-hidden glass-card border border-white/10 flex flex-col justify-between hover:border-turquoise-500/40 transition-all">
                           <div>
                             <div className="relative h-48 w-full bg-navy-950">
-                              <img src={room.photo} alt={room.name} className="w-full h-full object-cover" />
+                              <img src={room.photo || room.image} alt={room.name} className="w-full h-full object-cover" />
                               <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-transparent to-black/60"></div>
                               <div className="absolute top-3 left-3 flex gap-1">
                                 <span className="px-2 py-0.5 rounded bg-navy-950/80 text-white font-mono text-xs font-bold">№{room.number}</span>
@@ -2063,6 +2348,9 @@ export default function App() {
                     <option value="soup">Sho'rva (Uxa)</option>
                     <option value="baked">Dimlama Baliq</option>
                     <option value="seafood">Dengiz Mahsulotlari</option>
+                    <option value="special">Maxsus Taom</option>
+                    <option value="salad">Salatlar</option>
+                    <option value="drink">Ichimliklar</option>
                   </select>
                 </div>
                 <div>

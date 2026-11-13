@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { SupabaseAuth } from '../lib/supabase';
+import { supabaseSignIn, supabaseSignUp } from '../lib/supabaseClient';
+import { FishHouseLogo } from './FishHouseLogo';
+
+// SupabaseAuth wrapper — native fetch client orqali
+const SupabaseAuth = {
+  signIn: (email, password) => supabaseSignIn(email, password),
+  signUp: (email, password, opts) => supabaseSignUp(email, password, opts),
+};
 
 export default function AuthView({ onLoginSuccess, onCancel }) {
   const [isRegister, setIsRegister] = useState(false);
@@ -8,7 +15,6 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
-  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
 
   // Form states
   const [email, setEmail] = useState('');
@@ -17,12 +23,12 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
   const [role, setRole] = useState('customer'); // customer, waiter, chef, admin
   const [fullName, setFullName] = useState('');
 
-  // 1-Click Demo Accounts for rapid testing
+  // 1-Click Demo Accounts for rapid testing on Desktop
   const demoAccounts = [
-    { label: '👑 Admin (Mudir)', email: 'admin@fishhouse.uz', pass: 'admin123', role: 'admin', name: 'Administrator' },
-    { label: '🤵 Ofitsiant (Waiter)', email: 'waiter@fishhouse.uz', pass: 'waiter123', role: 'waiter', name: 'Sardor Saidov' },
-    { label: '👨‍🍳 Bosh Oshpaz (Chef)', email: 'chef@fishhouse.uz', pass: 'chef123', role: 'chef', name: 'Usta Jamshid' },
-    { label: '👤 Doimiy Mijoz', email: 'customer@fishhouse.uz', pass: 'user123', role: 'customer', name: 'Alisher Qodirov' },
+    { label: '👑 Administrator', email: 'admin@fishhouse.uz', pass: 'admin123', role: 'admin', name: 'Administrator', desc: 'Boshqaruv paneli' },
+    { label: '🤵 Ofitsiant (Waiter)', email: 'waiter@fishhouse.uz', pass: 'waiter123', role: 'waiter', name: 'Sardor Saidov', desc: 'Xonalar & buyurtmalar' },
+    { label: '👨‍🍳 Bosh Oshpaz (Chef)', email: 'chef@fishhouse.uz', pass: 'chef123', role: 'chef', name: 'Usta Jamshid', desc: 'Oshxona nazorati' },
+    { label: '👤 Doimiy Mijoz', email: 'customer@fishhouse.uz', pass: 'user123', role: 'customer', name: 'Alisher Qodirov', desc: 'Onlayn band qilish' },
   ];
 
   const handleDemoLogin = (account) => {
@@ -45,7 +51,7 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
         role: 'customer',
         provider: provider.toLowerCase()
       });
-    }, 600);
+    }, 500);
   };
 
   const handleSubmit = async (e) => {
@@ -155,104 +161,104 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
       }
 
       setLoading(false);
-      setErrorMessage("Email yoki parol noto'g'ri. Demo hisoblardan foydalanib ko'ring.");
+      setErrorMessage("Email yoki parol noto'g'ri. Demo hisoblardan birini tanlab ko'ring.");
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto font-sans">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-black/85 backdrop-blur-md overflow-y-auto font-sans">
       
-      {/* Smartphone Mockup Container */}
-      <div className="relative w-full max-w-[390px] rounded-[48px] bg-[#0c0d0e] border-[8px] border-[#222428] shadow-[0_25px_70px_rgba(0,0,0,0.9)] overflow-hidden my-auto text-white">
+      {/* Desktop Modal Card */}
+      <div className="relative w-full max-w-4xl rounded-3xl bg-[#0f1012] border border-white/10 shadow-[0_25px_80px_rgba(0,0,0,0.9)] overflow-hidden my-auto text-white flex flex-col md:flex-row">
         
-        {/* iPhone Top Status Bar */}
-        <div className="pt-3 px-7 flex items-center justify-between text-xs font-semibold text-white/90 select-none">
-          <span>9:41</span>
-          
-          {/* Dynamic Island / Speaker Pill */}
-          <div className="w-24 h-5 rounded-full bg-black border border-white/5 flex items-center justify-end px-2 gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#1c1c1e]"></div>
-            <div className="w-2 h-2 rounded-full bg-[#0d2a4a]"></div>
+        {/* Left Side: Desktop Branding & Fast Demo Accounts (42% width) */}
+        <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-[#121418] via-[#090b0e] to-[#040608] border-r border-white/10 p-8 flex-col justify-between relative overflow-hidden">
+          {/* Subtle glow circle */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          {/* Top Brand */}
+          <div className="space-y-4 relative z-10">
+            <FishHouseLogo className="h-14" textSize="text-2xl" showSubtitle={true} />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-semibold">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+              <span>Restoran Boshqaruv Tizimi</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            {/* Cellular */}
-            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-              <path d="M2 17h3v4H2v-4zm6-5h3v9H8v-9zm6-4h3v13h-3V8zm6-5h3v18h-3V3z" />
-            </svg>
-            {/* Wifi */}
-            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-              <path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 3c3.78 0 7.22 1.48 9.77 3.91L12 18.66 2.23 10.91C4.78 8.48 8.22 7 12 7z" />
-            </svg>
-            {/* Battery */}
-            <div className="w-5 h-2.5 rounded-[4px] border border-white/80 p-0.5 flex items-center">
-              <div className="h-full w-3 bg-white rounded-[1px]"></div>
+          {/* Middle Quote */}
+          <div className="py-6 space-y-2 relative z-10">
+            <h3 className="text-xl font-bold text-white leading-snug">
+              Haqiqiy Asil Baliq Ta'mi va Qulay Restoran Xizmati
+            </h3>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Xonalarni band qilish, jonli stol hisob-kitoblari va oshxona buyurtmalarini boshqarish platformasi.
+            </p>
+          </div>
+
+          {/* Bottom: Fast 1-Click Demo Accounts */}
+          <div className="space-y-2.5 pt-4 border-t border-white/10 relative z-10">
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-semibold">
+              <span className="uppercase tracking-wider text-[10px] text-[#f5b82e]">Tezkor Sinov (1-bosishda):</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {demoAccounts.map((acc, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleDemoLogin(acc)}
+                  className="p-2.5 rounded-xl bg-[#181a1f] hover:bg-[#22252c] border border-white/5 hover:border-[#f5b82e]/40 text-left transition-all group"
+                >
+                  <p className="text-xs font-bold text-zinc-200 group-hover:text-white truncate">{acc.label}</p>
+                  <p className="text-[10px] text-zinc-500 truncate">{acc.desc}</p>
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Inner Content Area */}
-        <div className="px-6 pt-5 pb-8 space-y-4 max-h-[85vh] overflow-y-auto">
+        {/* Right Side: Sleek Desktop Form (58% width) */}
+        <div className="w-full md:w-7/12 p-6 sm:p-10 flex flex-col justify-between relative bg-[#0c0d0e]">
           
-          {/* Top Row: Circular Back Button & Demo Account Pill */}
-          <div className="flex items-center justify-between">
+          {/* Top Bar: Close Button */}
+          <div className="flex items-center justify-between pb-3">
+            <div className="md:hidden">
+              <FishHouseLogo className="h-10" textSize="text-xl" showSubtitle={false} />
+            </div>
+            <div className="hidden md:block"></div>
+
             <button
               type="button"
               onClick={onCancel || (() => {})}
-              className="w-10 h-10 rounded-full bg-[#1c1c1e] hover:bg-[#2c2c2e] active:scale-95 transition-all flex items-center justify-center text-white"
-              title="Orqaga"
+              className="w-9 h-9 rounded-full bg-[#1c1c1e] hover:bg-[#2c2c2e] active:scale-95 transition-all flex items-center justify-center text-zinc-400 hover:text-white"
+              title="Yopish"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-
-            {/* Quick Demo Switcher Pill */}
-            <button
-              type="button"
-              onClick={() => setShowDemoAccounts(!showDemoAccounts)}
-              className="px-3 py-1.5 rounded-full bg-[#1c1c1e] text-[11px] font-semibold text-[#f5b82e] border border-[#f5b82e]/20 hover:bg-[#2c2c2e] transition-colors"
-            >
-              ⚡ Demo hisoblar
-            </button>
           </div>
 
-          {/* Quick Demo Accounts Drawer */}
-          {showDemoAccounts && (
-            <div className="p-3 rounded-2xl bg-[#18191c] border border-white/10 space-y-2 text-xs">
-              <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">1-bosishda tizimga kirish:</p>
-              <div className="grid grid-cols-2 gap-1.5">
-                {demoAccounts.map((acc, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => handleDemoLogin(acc)}
-                    className="p-2 rounded-xl bg-[#222428] hover:bg-[#2c2f35] text-left text-[11px] font-bold text-zinc-200 hover:text-white transition-colors truncate"
-                  >
-                    {acc.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Title Header */}
-          <div className="pt-1">
-            <h1 className="text-[26px] font-bold text-white tracking-tight leading-tight">
+          {/* Form Header */}
+          <div className="space-y-1 mb-5">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
               {isRegister ? "Sign Up To Your Account." : "Sign In To Your Account."}
             </h1>
+            <p className="text-xs text-zinc-400">
+              {isRegister ? "Yangi hisob yarating va restorandan buyurtma bering" : "Tizimga kirish uchun ma'lumotlaringizni kiriting"}
+            </p>
           </div>
 
-          {/* Error Banner */}
+          {/* Error Alert */}
           {errorMessage && (
-            <div className="p-3 rounded-2xl bg-red-950/70 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
+            <div className="mb-4 p-3 rounded-2xl bg-red-950/70 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
               <span className="flex-1">{errorMessage}</span>
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-3.5">
+          {/* Main Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
             
             {/* Email Field */}
             <div className="space-y-1.5">
@@ -263,7 +269,7 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="jamesschleifer@gmail.com"
-                className="w-full px-4 py-3.5 rounded-2xl bg-[#1c1c1e] text-white placeholder-zinc-500 text-sm focus:outline-none focus:ring-1 focus:ring-[#f5b82e] border border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-2xl bg-[#1c1c1e] text-white placeholder-zinc-500 text-sm focus:outline-none focus:ring-1 focus:ring-[#f5b82e] border border-transparent transition-all"
               />
             </div>
 
@@ -277,7 +283,7 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-4 pr-11 py-3.5 rounded-2xl bg-[#1c1c1e] text-white placeholder-zinc-500 text-sm tracking-widest focus:outline-none focus:ring-1 focus:ring-[#f5b82e] border border-transparent transition-all"
+                  className="w-full pl-4 pr-11 py-3 rounded-2xl bg-[#1c1c1e] text-white placeholder-zinc-500 text-sm tracking-widest focus:outline-none focus:ring-1 focus:ring-[#f5b82e] border border-transparent transition-all"
                 />
                 <button
                   type="button"
@@ -285,13 +291,11 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
                   className="absolute right-3.5 text-zinc-400 hover:text-white transition-colors p-1"
                 >
                   {showPassword ? (
-                    /* Eye open */
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
                   ) : (
-                    /* Eye slash */
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
                     </svg>
@@ -311,7 +315,7 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full pl-4 pr-11 py-3.5 rounded-2xl bg-[#1c1c1e] text-white placeholder-zinc-500 text-sm tracking-widest focus:outline-none focus:ring-1 focus:ring-[#f5b82e] border border-transparent transition-all"
+                    className="w-full pl-4 pr-11 py-3 rounded-2xl bg-[#1c1c1e] text-white placeholder-zinc-500 text-sm tracking-widest focus:outline-none focus:ring-1 focus:ring-[#f5b82e] border border-transparent transition-all"
                   />
                   <button
                     type="button"
@@ -333,11 +337,11 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
               </div>
             )}
 
-            {/* Optional Role Pill Selection when Registering */}
+            {/* Role picker if Register */}
             {isRegister && (
               <div className="space-y-1.5 pt-1">
                 <label className="text-xs font-medium text-zinc-400 block">Lavozim / Rol:</label>
-                <div className="grid grid-cols-4 gap-1 text-[11px]">
+                <div className="grid grid-cols-4 gap-1.5 text-xs">
                   {[
                     { id: 'customer', label: 'Mijoz' },
                     { id: 'waiter', label: 'Ofitsiant' },
@@ -348,7 +352,7 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
                       key={r.id}
                       type="button"
                       onClick={() => setRole(r.id)}
-                      className={`py-1.5 px-1 rounded-xl font-bold transition-all ${
+                      className={`py-2 px-1 rounded-xl font-bold transition-all ${
                         role === r.id
                           ? 'bg-[#f5b82e] text-black shadow-md'
                           : 'bg-[#1c1c1e] text-zinc-400 hover:text-white'
@@ -366,7 +370,7 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-4 rounded-full bg-[#f5b82e] hover:bg-[#e5aa26] active:scale-[0.98] text-black font-extrabold text-[15px] shadow-[0_10px_25px_rgba(245,184,46,0.25)] transition-all flex items-center justify-center"
+                className="w-full py-3.5 rounded-full bg-[#f5b82e] hover:bg-[#e5aa26] active:scale-[0.98] text-black font-extrabold text-sm sm:text-base shadow-[0_10px_25px_rgba(245,184,46,0.25)] transition-all flex items-center justify-center cursor-pointer"
               >
                 {loading ? (
                   <span className="inline-block w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
@@ -376,12 +380,12 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
               </button>
             </div>
 
-            {/* Remember Me Checkbox */}
-            <div className="pt-1 flex items-center">
+            {/* Remember Me Checkbox & Forgot Password */}
+            <div className="pt-1 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setRememberMe(!rememberMe)}
-                className="flex items-center gap-2.5 text-xs text-zinc-300 hover:text-white select-none transition-colors"
+                className="flex items-center gap-2.5 text-xs text-zinc-300 hover:text-white select-none transition-colors cursor-pointer"
               >
                 <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
                   rememberMe ? 'border-[#f5b82e] bg-[#f5b82e]' : 'border-zinc-500 bg-transparent'
@@ -390,23 +394,32 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
                 </div>
                 <span>Remember me</span>
               </button>
+
+              {!isRegister && (
+                <button
+                  type="button"
+                  onClick={() => alert("Parolni tiklash uchun qo'llab-quvvatlash xizmati: +998 71 200-88-99")}
+                  className="text-xs text-zinc-400 hover:text-[#f5b82e] transition-colors"
+                >
+                  Forgot password?
+                </button>
+              )}
             </div>
           </form>
 
           {/* OR Divider */}
-          <div className="pt-2 flex items-center gap-3">
+          <div className="py-4 flex items-center gap-3">
             <div className="flex-1 h-[1px] bg-zinc-800"></div>
             <span className="text-[11px] font-bold text-zinc-500 tracking-wider">OR</span>
             <div className="flex-1 h-[1px] bg-zinc-800"></div>
           </div>
 
-          {/* Social Logins */}
-          <div className="space-y-2.5 pt-1">
-            {/* Google */}
+          {/* Social Logins (Google & Apple) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <button
               type="button"
               onClick={() => handleSocialLogin('Google')}
-              className="w-full py-3.5 px-4 rounded-full bg-[#1c1c1e] hover:bg-[#27272a] active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-2.5 transition-all"
+              className="w-full py-3 px-4 rounded-full bg-[#1c1c1e] hover:bg-[#27272a] active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-2.5 transition-all cursor-pointer"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -417,11 +430,10 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
               <span>Sign in with Google</span>
             </button>
 
-            {/* Apple */}
             <button
               type="button"
               onClick={() => handleSocialLogin('Apple')}
-              className="w-full py-3.5 px-4 rounded-full bg-[#1c1c1e] hover:bg-[#27272a] active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-2.5 transition-all"
+              className="w-full py-3 px-4 rounded-full bg-[#1c1c1e] hover:bg-[#27272a] active:scale-[0.98] text-white text-xs font-semibold flex items-center justify-center gap-2.5 transition-all cursor-pointer"
             >
               <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.38c.62-.75 1.04-1.8 0.92-2.85-.9.04-1.99.6-2.64 1.35-.58.67-1.09 1.74-.95 2.77 1 .08 2.04-.52 2.67-1.27z" />
@@ -431,7 +443,7 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
           </div>
 
           {/* Bottom Switcher: Don't have an account? Login / Sign Up */}
-          <div className="pt-4 text-center">
+          <div className="pt-5 text-center">
             {isRegister ? (
               <p className="text-xs text-zinc-400">
                 Already have an account?{' '}
@@ -441,7 +453,7 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
                     setIsRegister(false);
                     setErrorMessage('');
                   }}
-                  className="font-bold text-[#f5b82e] hover:underline"
+                  className="font-bold text-[#f5b82e] hover:underline cursor-pointer ml-1"
                 >
                   Login
                 </button>
@@ -455,17 +467,12 @@ export default function AuthView({ onLoginSuccess, onCancel }) {
                     setIsRegister(true);
                     setErrorMessage('');
                   }}
-                  className="font-bold text-[#f5b82e] hover:underline"
+                  className="font-bold text-[#f5b82e] hover:underline cursor-pointer ml-1"
                 >
                   Sign Up
                 </button>
               </p>
             )}
-          </div>
-
-          {/* iPhone Home Bar indicator */}
-          <div className="pt-2 flex justify-center">
-            <div className="w-32 h-1 bg-white/20 rounded-full"></div>
           </div>
 
         </div>

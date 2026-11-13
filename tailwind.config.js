@@ -9,13 +9,13 @@ export default {
     extend: {
       colors: {
         navy: {
-          950: '#030814',
-          900: '#071126',
-          850: '#0B1736',
-          800: '#10224D',
-          750: '#152C63',
-          700: '#1A377B',
-          600: '#234C9E'
+          950: '#000000', // Pure pitch black
+          900: '#08090c', // Deep black sidebar/cards
+          850: '#0e1015', // Dark elevated surface
+          800: '#15171f', // Dark button/item hover
+          750: '#1d212b',
+          700: '#262a37',
+          600: '#323748'
         },
         ocean: {
           900: '#0C2D48',
