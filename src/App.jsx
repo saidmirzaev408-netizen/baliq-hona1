@@ -1,12 +1,32 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { INITIAL_DATA } from './data/mockData';
+import { INITIAL_DATA, getLocalizedDish } from './data/mockData';
 import { AudioService, formatUZS } from './utils/audio';
 import { Icons } from './components/Icons';
 import AuthView from './components/AuthView';
 import LandingPageView from './components/LandingPageView';
 import { FishHouseLogo } from './components/FishHouseLogo';
+import { translations, getTranslation } from './i18n/translations';
 
 export default function App() {
+  // Multi-Language State (uz, ru, en)
+  const [lang, setLang] = useState(() => {
+    try {
+      return localStorage.getItem('FISH_HOUSE_LANG') || 'uz';
+    } catch (e) {
+      return 'uz';
+    }
+  });
+
+  const t = useMemo(() => getTranslation(lang), [lang]);
+
+  const handleLanguageChange = (newLang) => {
+    setLang(newLang);
+    try {
+      localStorage.setItem('FISH_HOUSE_LANG', newLang);
+    } catch (e) {}
+    AudioService.playClick();
+  };
+
   const initialData = useMemo(() => {
     try {
       const saved = localStorage.getItem('FISH_HOUSE_APP_STATE_V1');
@@ -17,9 +37,12 @@ export default function App() {
 
   const [rooms, setRooms] = useState(initialData.rooms || []);
   const [dishes, setDishes] = useState(initialData.dishes || []);
+  const [staff, setStaff] = useState(initialData.staff || []);
   const [roomOrders, setRoomOrders] = useState(initialData.roomOrders || {});
   const [reservations, setReservations] = useState(initialData.reservations || []);
   const [salesHistory, setSalesHistory] = useState(initialData.salesHistory || []);
+  const [addStaffModal, setAddStaffModal] = useState(false);
+  const [staffRoleFilter, setStaffRoleFilter] = useState('ALL');
   const [settings, setSettings] = useState(initialData.restaurant || {
     name: "FISH HOUSE",
     address: "Toshkent sh., Chilonzor tumani, Dengiz ko'chasi, 7-uy",
@@ -85,10 +108,50 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem('FISH_HOUSE_APP_STATE_V1', JSON.stringify({
-        rooms, dishes, roomOrders, reservations, salesHistory, restaurant: settings
+        rooms, dishes, staff, roomOrders, reservations, salesHistory, restaurant: settings
       }));
     } catch (e) { }
-  }, [rooms, dishes, roomOrders, reservations, salesHistory, settings]);
+  }, [rooms, dishes, staff, roomOrders, reservations, salesHistory, settings]);
+
+  // Staff Management Handlers
+  const handleAddNewStaff = (newStaffData) => {
+    const staffMember = {
+      id: `st-${Date.now()}`,
+      name: newStaffData.name,
+      role: newStaffData.role,
+      roleType: newStaffData.roleType || 'waiter',
+      phone: newStaffData.phone || '+998 90 000-00-00',
+      avatar: newStaffData.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80',
+      shift: newStaffData.shift || '11:00 - 23:30',
+      status: 'active',
+      salary: newStaffData.salary || '5 000 000 UZS',
+      assignedRooms: newStaffData.assignedRooms ? newStaffData.assignedRooms.split(',').map(s => s.trim()) : ['Barcha Zallar'],
+      todayOrders: 0,
+      rating: 5.0,
+      experience: newStaffData.experience || '1 yil'
+    };
+    setStaff(prev => [staffMember, ...prev]);
+    setAddStaffModal(false);
+    showToast(`${staffMember.name} muvaffaqiyatli xodimlar safiga qo'shildi!`, 'success');
+  };
+
+  const handleToggleStaffStatus = (staffId) => {
+    setStaff(prev => prev.map(s => {
+      if (s.id === staffId) {
+        const nextStatus = s.status === 'active' ? 'off' : 'active';
+        return { ...s, status: nextStatus };
+      }
+      return s;
+    }));
+    AudioService.playClick();
+  };
+
+  const handleDeleteStaff = (staffId) => {
+    if (window.confirm("Haqiqatan ham ushbu xodimni ro'yxatdan o'chirmoqchimisiz?")) {
+      setStaff(prev => prev.filter(s => s.id !== staffId));
+      showToast("Xodim ro'yxatdan o'chirildi", 'info');
+    }
+  };
 
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
@@ -453,6 +516,7 @@ export default function App() {
       localStorage.removeItem('FISH_HOUSE_APP_STATE_V1');
       setRooms(INITIAL_DATA.rooms);
       setDishes(INITIAL_DATA.dishes);
+      setStaff(INITIAL_DATA.staff || []);
       setRoomOrders(INITIAL_DATA.roomOrders);
       setReservations(INITIAL_DATA.reservations);
       setSalesHistory(INITIAL_DATA.salesHistory);
@@ -573,47 +637,110 @@ export default function App() {
         </div>
       )}
 
-      {/* Top Banner: Mode & User Bar */}
-      <div className="bg-gradient-to-r from-black via-[#0b0c10] to-black border-b border-white/10 px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-2 z-30 relative">
+      {/* Top Banner: Mode, Language Switcher & User Bar */}
+      <div className="bg-gradient-to-r from-black via-[#0b0c10] to-black border-b border-white/10 px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-3 z-30 relative">
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span className="font-bold text-turquoise-300">
-              {viewMode === 'admin' ? "Restoran Boshqaruvi (Admin POS)" : "Mijozlar Portali (Landing Sayt)"}
+              {viewMode === 'admin' ? t.adminBadge : t.customerBadge}
             </span>
           </div>
 
           <button
             onClick={() => setViewMode(viewMode === 'admin' ? 'portal' : 'admin')}
-            className="px-3 py-1 rounded-lg bg-navy-800 hover:bg-navy-750 text-slate-300 hover:text-white border border-white/10 text-xs font-semibold transition-all"
+            className="px-3 py-1 rounded-lg bg-navy-800 hover:bg-navy-750 text-slate-300 hover:text-white border border-white/10 text-xs font-semibold transition-all flex items-center gap-1.5"
           >
-            {viewMode === 'admin' ? "🌐 Mijozlar Saytiga O'tish" : "🏢 Boshqaruv Paneliga O'tish"}
+            <span>{viewMode === 'admin' ? "🌐" : "🏢"}</span>
+            <span>{viewMode === 'admin' ? t.btnPortal : t.btnAdmin}</span>
           </button>
         </div>
 
-        {/* User Auth Info & Login/Register Button */}
+        {/* Multi-Language Selector (UZ / RU / EN) */}
+        <div className="flex items-center bg-[#13161c] border border-white/15 rounded-xl p-1 gap-1 shadow-inner">
+          {[
+            { id: 'uz', label: "O'zbek", short: 'UZ', flag: '🇺🇿' },
+            { id: 'ru', label: 'Русский', short: 'RU', flag: '🇷🇺' },
+            { id: 'en', label: 'English', short: 'EN', flag: '🇬🇧' },
+          ].map(item => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => handleLanguageChange(item.id)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                lang === item.id
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.5)] scale-105'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+              title={item.label}
+            >
+              <span>{item.flag}</span>
+              <span>{item.short}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* User Auth Info & Login/Register Button - Luxury Glass Pill */}
         <div className="flex items-center space-x-3 ml-auto">
           {currentUser ? (
-            <div className="flex items-center space-x-2 bg-navy-900/80 px-3 py-1 rounded-full border border-white/10">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span className="font-bold text-white text-xs">{currentUser.name}</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-turquoise-500/20 text-turquoise-300 uppercase font-semibold">
-                {currentUser.role}
-              </span>
+            <div className="flex items-center gap-2.5 bg-gradient-to-r from-[#131722]/90 via-[#0e111a]/95 to-[#131722]/90 hover:from-[#181d2b] hover:to-[#181d2b] pl-1.5 pr-2 py-1 rounded-2xl border border-cyan-500/25 shadow-[0_4px_20px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-200 group">
+              {/* Mini User Avatar with Live Online Ping */}
+              <div className="relative flex-shrink-0">
+                <div className="w-6 h-6 rounded-xl bg-gradient-to-tr from-cyan-600 via-teal-500 to-sky-400 p-[1px] shadow-sm">
+                  <div className="w-full h-full rounded-[11px] bg-[#070b12] flex items-center justify-center text-[11px] font-black text-cyan-300 uppercase font-sans">
+                    {currentUser.name ? currentUser.name.charAt(0) : 'U'}
+                  </div>
+                </div>
+                <span className="absolute -bottom-0.5 -right-0.5 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 border border-black"></span>
+                </span>
+              </div>
+
+              {/* User Name */}
+              <div className="flex items-center gap-1.5 leading-none">
+                <span className="font-extrabold text-white text-xs tracking-tight group-hover:text-cyan-200 transition-colors">
+                  {currentUser.name}
+                </span>
+
+                {/* Role Badge (Dynamic Color) */}
+                <span
+                  className={`text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider border shadow-sm ${
+                    currentUser.role === 'admin'
+                      ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
+                      : currentUser.role === 'waiter'
+                      ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/40'
+                      : currentUser.role === 'chef'
+                      ? 'bg-orange-500/15 text-orange-300 border-orange-500/40'
+                      : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/35 shadow-[0_0_8px_rgba(6,182,212,0.2)]'
+                  }`}
+                >
+                  {currentUser.role || 'User'}
+                </span>
+              </div>
+
+              {/* Divider Line */}
+              <div className="h-3.5 w-[1px] bg-white/10 mx-0.5"></div>
+
+              {/* Logout Button */}
               <button
+                type="button"
                 onClick={handleLogout}
-                className="text-xs text-red-400 hover:text-red-300 ml-2 font-semibold"
-                title="Tizimdan chiqish"
+                className="flex items-center gap-1 px-2 py-1 rounded-xl bg-rose-500/10 hover:bg-rose-500/25 active:scale-95 text-rose-300 hover:text-white border border-rose-500/30 text-[11px] font-bold transition-all cursor-pointer shadow-sm"
+                title={t.logout}
               >
-                Chiqish
+                <svg className="w-3 h-3 text-rose-400 group-hover:text-rose-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span>{t.logout}</span>
               </button>
             </div>
           ) : (
             <button
               onClick={() => setShowAuthModal(true)}
-              className="px-3.5 py-1 rounded-lg bg-gradient-to-r from-turquoise-500 to-ocean-600 hover:from-turquoise-400 text-navy-950 font-extrabold text-xs shadow-glow-cyan"
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-turquoise-500 to-ocean-600 hover:from-turquoise-400 text-navy-950 font-extrabold text-xs shadow-glow-cyan cursor-pointer transition-all hover:scale-105"
             >
-              🔐 Kirish / Ro'yxatdan o'tish
+              🔐 {t.login}
             </button>
           )}
         </div>
@@ -634,6 +761,8 @@ export default function App() {
           dishes={dishes}
           restaurant={settings}
           currentUser={currentUser}
+          lang={lang}
+          onLanguageChange={handleLanguageChange}
           onOpenLogin={() => setShowAuthModal(true)}
           onOpenRegister={() => setShowAuthModal(true)}
           onLogout={handleLogout}
@@ -648,27 +777,28 @@ export default function App() {
 
           {/* Sidebar */}
           <aside className={`fixed lg:static top-0 bottom-0 left-0 w-64 bg-[#08090c] border-r border-white/10 z-40 flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-            <div className="h-20 px-4 border-b border-white/10 flex items-center justify-between bg-[#040507]">
-              {/* FISH HOUSE Logo */}
-              <FishHouseLogo className="h-12" textSize="text-xl" showSubtitle={true} />
-              <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-white ml-2">
+            <div className="h-18 px-3.5 py-2 border-b border-white/10 flex items-center justify-between bg-[#040507]">
+              {/* FISH HOUSE Logo - Compact & Rounded */}
+              <FishHouseLogo className="h-11" textSize="text-lg" showSubtitle={true} />
+              <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-white ml-2 p-1">
                 <Icons.X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-5 space-y-1.5">
               <div className="px-3 pb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                Menyular
+                {t.menuHeader}
               </div>
               {[
-                { id: 'dashboard', label: 'Boshqaruv Paneli', icon: Icons.LayoutDashboard },
-                { id: 'rooms', label: 'Xonalar va Kabinetlar', icon: Icons.DoorClosed, badge: metrics.occupiedRooms, badgeColor: 'bg-red-500/20 text-red-300 border border-red-500/40' },
-                { id: 'menu', label: 'Baliq Taomlari', icon: Icons.Fish },
-                { id: 'reservations', label: 'Band Qilinganlar', icon: Icons.Calendar, badge: metrics.reservedRooms, badgeColor: 'bg-amber-500/20 text-amber-300 border border-amber-500/40' },
-                { id: 'orders', label: 'Oshxona Buyurtmalari', icon: Icons.ChefHat, badge: allKitchenOrders.filter(o => o.status === 'pending').length, badgeColor: 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' },
-                { id: 'bills', label: 'Umumiy Hisob-Kitob', icon: Icons.Receipt, badge: metrics.occupiedRooms, badgeColor: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' },
-                { id: 'reports', label: 'Hisobotlar', icon: Icons.BarChart3 },
-                { id: 'settings', label: 'Sozlamalar', icon: Icons.Settings }
+                { id: 'dashboard', label: t.tabDashboard, icon: Icons.LayoutDashboard },
+                { id: 'rooms', label: t.tabRooms, icon: Icons.DoorClosed, badge: metrics.occupiedRooms, badgeColor: 'bg-red-500/20 text-red-300 border border-red-500/40' },
+                { id: 'menu', label: t.tabMenu, icon: Icons.Fish },
+                { id: 'staff', label: t.tabStaff, icon: Icons.Users, badge: staff.filter(s => s.status === 'active').length, badgeColor: 'bg-teal-500/20 text-teal-300 border border-teal-500/40' },
+                { id: 'reservations', label: t.tabReservations, icon: Icons.Calendar, badge: metrics.reservedRooms, badgeColor: 'bg-amber-500/20 text-amber-300 border border-amber-500/40' },
+                { id: 'orders', label: t.tabOrders, icon: Icons.ChefHat, badge: allKitchenOrders.filter(o => o.status === 'pending').length, badgeColor: 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' },
+                { id: 'bills', label: t.tabBills, icon: Icons.Receipt, badge: metrics.occupiedRooms, badgeColor: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' },
+                { id: 'reports', label: t.tabReports, icon: Icons.BarChart3 },
+                { id: 'settings', label: t.tabSettings, icon: Icons.Settings }
               ].map(item => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
@@ -704,30 +834,30 @@ export default function App() {
               <div className="flex items-center justify-between text-slate-400 font-semibold">
                 <span className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-turquoise-400"></span>
-                  <span>Xonalar Holati</span>
+                  <span>{t.roomStatusWidgetTitle}</span>
                 </span>
-                <span className="text-white font-bold">{metrics.totalRooms} ta</span>
+                <span className="text-white font-bold">{metrics.totalRooms} {t.roomsCount}</span>
               </div>
 
               {/* Segmented Progress Bar */}
               <div className="h-2 w-full rounded-full bg-white/5 flex overflow-hidden p-0.5 gap-0.5">
-                <div style={{ width: `${(metrics.availableRooms / (metrics.totalRooms || 1)) * 100}%` }} className="h-full bg-emerald-500 rounded-full transition-all" title="Bo'sh"></div>
-                <div style={{ width: `${(metrics.occupiedRooms / (metrics.totalRooms || 1)) * 100}%` }} className="h-full bg-rose-500 rounded-full transition-all" title="Zanit"></div>
-                <div style={{ width: `${(metrics.reservedRooms / (metrics.totalRooms || 1)) * 100}%` }} className="h-full bg-amber-400 rounded-full transition-all" title="Band"></div>
+                <div style={{ width: `${(metrics.availableRooms / (metrics.totalRooms || 1)) * 100}%` }} className="h-full bg-emerald-500 rounded-full transition-all" title={t.statusAvailable}></div>
+                <div style={{ width: `${(metrics.occupiedRooms / (metrics.totalRooms || 1)) * 100}%` }} className="h-full bg-rose-500 rounded-full transition-all" title={t.statusOccupied}></div>
+                <div style={{ width: `${(metrics.reservedRooms / (metrics.totalRooms || 1)) * 100}%` }} className="h-full bg-amber-400 rounded-full transition-all" title={t.statusReserved}></div>
               </div>
 
               <div className="grid grid-cols-3 gap-1.5 pt-0.5 text-center">
                 <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                   <span className="block text-emerald-400 font-black text-sm">{metrics.availableRooms}</span>
-                  <span className="text-[10px] text-emerald-300 font-medium">Bo'sh</span>
+                  <span className="text-[10px] text-emerald-300 font-medium">{t.statusAvailable}</span>
                 </div>
                 <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30">
                   <span className="block text-rose-400 font-black text-sm">{metrics.occupiedRooms}</span>
-                  <span className="text-[10px] text-rose-300 font-bold">Zanit</span>
+                  <span className="text-[10px] text-rose-300 font-bold">{t.statusOccupied}</span>
                 </div>
                 <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
                   <span className="block text-amber-400 font-black text-sm">{metrics.reservedRooms}</span>
-                  <span className="text-[10px] text-amber-300 font-medium">Band</span>
+                  <span className="text-[10px] text-amber-300 font-medium">{t.statusReserved}</span>
                 </div>
               </div>
             </div>
@@ -744,14 +874,15 @@ export default function App() {
                 </button>
                 <div>
                   <h1 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
-                    {activeTab === 'dashboard' ? 'Boshqaruv Paneli' :
-                      activeTab === 'rooms' ? 'Xonalar va Kabinetlar' :
-                        activeTab === 'room-detail' ? 'Xona Tafsilotlari & Hisob' :
-                          activeTab === 'menu' ? 'Baliq Taomlari Menyusi' :
-                            activeTab === 'reservations' ? 'Band Qilingan Xonalar' :
-                              activeTab === 'orders' ? 'Oshxona Buyurtmalari Nazorati' :
-                                activeTab === 'bills' ? 'Umumiy Hisob-Kitob & Cheklar' :
-                                  activeTab === 'reports' ? 'Hisobotlar va Statistika' : 'Tizim Sozlamalari'}
+                    {activeTab === 'dashboard' ? t.tabDashboard :
+                      activeTab === 'rooms' ? t.tabRooms :
+                        activeTab === 'room-detail' ? `${t.tabRooms} & ${t.tabBills}` :
+                          activeTab === 'menu' ? t.tabMenu :
+                            activeTab === 'staff' ? t.tabStaff :
+                              activeTab === 'reservations' ? t.tabReservations :
+                                activeTab === 'orders' ? t.tabOrders :
+                                  activeTab === 'bills' ? t.tabBills :
+                                    activeTab === 'reports' ? t.tabReports : t.tabSettings}
                   </h1>
                   <p className="text-[11px] text-slate-400 hidden sm:block">
                     FISH HOUSE • Seafood Restaurant Management System
@@ -762,12 +893,12 @@ export default function App() {
               <div className="flex items-center space-x-3">
                 <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold">
                   <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-                  <span>{metrics.occupiedRooms} ta xona ZANIT</span>
+                  <span>{metrics.occupiedRooms} {t.roomsCount} {t.statusOccupied.toUpperCase()}</span>
                 </div>
 
                 <button
                   onClick={() => setSoundEnabled(!soundEnabled)}
-                  title={soundEnabled ? "Ovozni o'chirish" : "Ovozni yoqish"}
+                  title={soundEnabled ? t.soundOff : t.soundOn}
                   className={`p-2.5 rounded-xl border transition-all ${soundEnabled ? 'bg-turquoise-500/15 border-turquoise-500/40 text-turquoise-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]' : 'bg-navy-900 border-white/10 text-slate-500 hover:text-slate-300'}`}
                 >
                   {soundEnabled ? <Icons.Volume2 className="w-4 h-4" /> : <Icons.VolumeX className="w-4 h-4" />}
@@ -775,10 +906,10 @@ export default function App() {
 
                 <button
                   onClick={() => setBookingModal({ isOpen: true, targetRoomId: '' })}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-turquoise-500 to-ocean-500 hover:from-turquoise-400 hover:to-ocean-400 text-navy-950 font-black text-xs sm:text-sm shadow-glow-cyan flex items-center gap-2 transition-all transform hover:scale-[1.02]"
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-turquoise-500 to-ocean-500 hover:from-turquoise-400 hover:to-ocean-400 text-navy-950 font-black text-xs sm:text-sm shadow-glow-cyan flex items-center gap-2 transition-all transform hover:scale-[1.02] cursor-pointer"
                 >
                   <Icons.Plus className="w-4 h-4" />
-                  <span>+ Stol Band Qilish</span>
+                  <span>+ {t.btnQuickBook}</span>
                 </button>
               </div>
             </header>
@@ -793,10 +924,10 @@ export default function App() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     {[
                       {
-                        title: "Bugungi Tushum",
+                        title: t.statTodayRevenue,
                         value: formatUZS(metrics.todayRevenue),
                         sub: "Naqd & Karta to'lovlari",
-                        badge: "+18.4% bugun",
+                        badge: t.statTodayGrowth,
                         badgeColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
                         icon: Icons.TrendingUp,
                         accent: "from-cyan-500 to-blue-500",
@@ -805,10 +936,10 @@ export default function App() {
                         iconBg: "bg-cyan-500/10 border-cyan-500/30"
                       },
                       {
-                        title: "Band Xonalar (ZANIT)",
-                        value: `${metrics.occupiedRooms} ta`,
+                        title: `${t.statOccupiedRooms} (${t.statusOccupied.toUpperCase()})`,
+                        value: `${metrics.occupiedRooms} ${t.roomsCount}`,
                         sub: `Bandlik: ${Math.round((metrics.occupiedRooms / (metrics.totalRooms || 1)) * 100)}% to'lgan`,
-                        badge: "🔴 Jonli band",
+                        badge: t.statLiveNow,
                         badgeColor: "bg-rose-500/15 text-rose-400 border-rose-500/40 animate-pulse",
                         icon: Icons.Users,
                         accent: "from-rose-500 to-red-600",
@@ -817,10 +948,10 @@ export default function App() {
                         iconBg: "bg-rose-500/10 border-rose-500/30"
                       },
                       {
-                        title: "Bo'sh Xonalar",
-                        value: `${metrics.availableRooms} ta`,
-                        sub: "Mehmon qabuliga tayyor",
-                        badge: "🟢 Bo'sh stol",
+                        title: t.statAvailableRooms,
+                        value: `${metrics.availableRooms} ${t.roomsCount}`,
+                        sub: t.statReadyForGuests,
+                        badge: `🟢 ${t.statusAvailable}`,
                         badgeColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
                         icon: Icons.Check,
                         accent: "from-emerald-500 to-teal-600",
@@ -829,10 +960,10 @@ export default function App() {
                         iconBg: "bg-emerald-500/10 border-emerald-500/30"
                       },
                       {
-                        title: "Rezervatsiyalar",
-                        value: `${metrics.reservedRooms} ta`,
-                        sub: "Bugun kutilayotgan mehmonlar",
-                        badge: "🟡 Band qilingan",
+                        title: t.statReservations,
+                        value: `${metrics.reservedRooms} ${t.roomsCount}`,
+                        sub: t.statConfirmed,
+                        badge: `🟡 ${t.statusReserved}`,
                         badgeColor: "bg-amber-500/15 text-amber-300 border-amber-500/30",
                         icon: Icons.Calendar,
                         accent: "from-amber-500 to-yellow-600",
@@ -841,8 +972,8 @@ export default function App() {
                         iconBg: "bg-amber-500/10 border-amber-500/30"
                       },
                       {
-                        title: "Jami Buyurtmalar",
-                        value: `${metrics.totalFoodOrders} ta taom`,
+                        title: t.statTotalOrders,
+                        value: `${metrics.totalFoodOrders} ${t.statDishesDelivered}`,
                         sub: `${allKitchenOrders.filter(o => o.status === 'pending').length} ta oshxonada kutilmoqda`,
                         badge: "🍳 Faol buyurtma",
                         badgeColor: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30",
@@ -853,10 +984,10 @@ export default function App() {
                         iconBg: "bg-indigo-500/10 border-indigo-500/30"
                       },
                       {
-                        title: "Jami Xonalar",
-                        value: `${metrics.totalRooms} ta`,
+                        title: t.tabRooms,
+                        value: `${metrics.totalRooms} ${t.roomsCount}`,
                         sub: "VIP xonalar va banket zallari",
-                        badge: "Barcha xonalar",
+                        badge: t.all,
                         badgeColor: "bg-blue-500/15 text-blue-300 border-blue-500/30",
                         icon: Icons.DoorClosed,
                         accent: "from-blue-500 to-cyan-600",
@@ -914,7 +1045,7 @@ export default function App() {
                         </div>
                         <div>
                           <h3 className="font-black text-white text-base tracking-tight flex items-center gap-2">
-                            <span>Xonalar Holati (Jonli Monitor)</span>
+                            <span>{t.liveRoomMonitor}</span>
                             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                           </h3>
                           <p className="text-xs text-slate-400">
@@ -925,15 +1056,14 @@ export default function App() {
 
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-3 text-xs text-slate-400 bg-black/40 px-3 py-1.5 rounded-xl border border-white/5">
-                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400"></span> {metrics.availableRooms} Bo'sh</span>
+                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400"></span> {metrics.availableRooms} {t.statusAvailable}</span>
                           <span className="text-white/20">•</span>
-                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span> {metrics.occupiedRooms} Zanit</span>
+                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span> {metrics.occupiedRooms} {t.statusOccupied}</span>
                           <span className="text-white/20">•</span>
-                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400"></span> {metrics.reservedRooms} Band</span>
+                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400"></span> {metrics.reservedRooms} {t.statusReserved}</span>
                         </div>
-                        <button onClick={() => setActiveTab('rooms')} className="text-xs font-bold text-turquoise-400 hover:text-turquoise-300 transition-colors flex items-center gap-1">
-                          <span>Barchasini ko'rish</span>
-                          <span>&rarr;</span>
+                        <button onClick={() => setActiveTab('rooms')} className="text-xs font-bold text-turquoise-400 hover:text-turquoise-300 transition-colors flex items-center gap-1 cursor-pointer">
+                          <span>{t.viewAll}</span>
                         </button>
                       </div>
                     </div>
@@ -968,7 +1098,7 @@ export default function App() {
                                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                                       <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                                     </span>
-                                  )}
+   
                                   {isReserved && <span className="h-2 w-2 rounded-full bg-amber-400"></span>}
                                   {isAvailable && <span className="h-2 w-2 rounded-full bg-emerald-400"></span>}
                                 </div>
@@ -995,7 +1125,7 @@ export default function App() {
                                     <p className="text-[10px] font-mono font-bold text-amber-400 text-right truncate">
                                       {formatUZS(roomTotal)}
                                     </p>
-                                  )}
+   
                                 </div>
                               ) : isReserved ? (
                                 <div className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-[9px] tracking-wider uppercase flex items-center justify-between">
@@ -1026,15 +1156,15 @@ export default function App() {
                           </div>
                           <div>
                             <h3 className="font-black text-white text-sm tracking-tight">
-                              Band Xonalar va Jonli Hisoblar
+                              {t.occupiedRoomsLiveBills}
                             </h3>
                             <p className="text-[11px] text-slate-400">
-                              Hozirda {rooms.filter(r => r.status === 'OCCUPIED').length} ta xona xizmatda
+                              Hozirda {rooms.filter(r => r.status === 'OCCUPIED').length} {t.roomsCount} {t.statusOccupied.toLowerCase()}
                             </p>
                           </div>
                         </div>
-                        <button onClick={() => setActiveTab('bills')} className="text-xs font-bold text-turquoise-400 hover:text-turquoise-300">
-                          Barchasi &rarr;
+                        <button onClick={() => setActiveTab('bills')} className="text-xs font-bold text-turquoise-400 hover:text-turquoise-300 cursor-pointer">
+                          {t.viewAll}
                         </button>
                       </div>
 
@@ -1075,7 +1205,7 @@ export default function App() {
                                           <span>•</span>
                                           <span className="text-turquoise-400 font-semibold">{ordersCount} ta taom</span>
                                         </>
-                                      )}
+       
                                     </div>
                                   </div>
                                 </div>
@@ -1180,16 +1310,17 @@ export default function App() {
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                     <div className="flex flex-wrap items-center gap-2">
                       {[
-                        { id: 'ALL', label: `Barchasi (${rooms.length})` },
-                        { id: 'AVAILABLE', label: `Bo'sh (${rooms.filter(r => r.status === 'AVAILABLE').length})`, color: 'text-emerald-400' },
-                        { id: 'OCCUPIED', label: `ZANIT (${rooms.filter(r => r.status === 'OCCUPIED').length})`, color: 'text-red-400' },
-                        { id: 'RESERVED', label: `Band (${rooms.filter(r => r.status === 'RESERVED').length})`, color: 'text-amber-400' }
+                        { id: 'ALL', label: `${t.all} (${rooms.length})` },
+                        { id: 'AVAILABLE', label: `${t.statusAvailable} (${rooms.filter(r => r.status === 'AVAILABLE').length})`, color: 'text-emerald-400' },
+                        { id: 'OCCUPIED', label: `${t.statusOccupied.toUpperCase()} (${rooms.filter(r => r.status === 'OCCUPIED').length})`, color: 'text-red-400' },
+                        { id: 'RESERVED', label: `${t.statusReserved} (${rooms.filter(r => r.status === 'RESERVED').length})`, color: 'text-amber-400' }
                       ].map(f => (
                         <button
                           key={f.id}
                           onClick={() => setRoomFilter(f.id)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${roomFilter === f.id ? 'bg-turquoise-500 text-navy-950 shadow-glow-cyan' : 'bg-navy-850 text-slate-300 hover:bg-navy-800'
-                            }`}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            roomFilter === f.id ? 'bg-turquoise-500 text-navy-950 shadow-glow-cyan' : 'bg-navy-850 text-slate-300 hover:bg-navy-800'
+                          }`}
                         >
                           {f.label}
                         </button>
@@ -1197,23 +1328,23 @@ export default function App() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="relative flex-1 sm:w-48">
+                      <div className="relative flex-1 sm:w-52">
                         <input
                           type="text"
-                          placeholder="Qidirish (№ yoki nom)..."
+                          placeholder={t.search}
                           value={roomSearch}
                           onChange={(e) => setRoomSearch(e.target.value)}
-                          className="w-full pl-8 pr-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-xs text-white placeholder-slate-400"
+                          className="w-full pl-8 pr-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-turquoise-400"
                         />
                         <Icons.Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                       </div>
 
                       <button
                         onClick={() => setAddRoomModal(true)}
-                        className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-turquoise-500 to-ocean-600 hover:from-turquoise-400 text-navy-950 font-black text-xs shadow-glow-cyan flex items-center gap-1.5"
+                        className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-turquoise-500 to-ocean-600 hover:from-turquoise-400 text-navy-950 font-black text-xs shadow-glow-cyan flex items-center gap-1.5 cursor-pointer"
                       >
                         <Icons.Plus className="w-3.5 h-3.5" />
-                        <span>+ Yangi Xona</span>
+                        <span>{t.addNewRoom}</span>
                       </button>
                     </div>
                   </div>
@@ -1234,39 +1365,39 @@ export default function App() {
                               <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-transparent to-black/60"></div>
                               <div className="absolute top-3 left-3 flex gap-1">
                                 <span className="px-2 py-0.5 rounded bg-navy-950/80 text-white font-mono text-xs font-bold">№{room.number}</span>
-                                <span className="px-2 py-0.5 rounded bg-ocean-700/80 text-cyan-200 text-xs">{room.type}</span>
+                                <span className="px-2 py-0.5 rounded bg-ocean-700/80 text-cyan-200 text-xs font-semibold">{room.type}</span>
                               </div>
 
                               {/* PROMINENT STATUS BADGE */}
                               <div className="absolute top-3 right-3">
-                                {isOccupied && <span className="px-3 py-1.5 rounded-lg shimmer-badge text-white font-black text-xs shadow-glow-red border border-red-300 animate-pulse">ZANIT</span>}
-                                {isAvailable && <span className="px-3 py-1 rounded-lg bg-emerald-500 text-navy-950 font-black text-xs">BO'SH</span>}
-                                {isReserved && <span className="px-3 py-1 rounded-lg bg-amber-500 text-navy-950 font-black text-xs">BAND QILINGAN</span>}
+                                {isOccupied && <span className="px-3 py-1.5 rounded-lg shimmer-badge text-white font-black text-xs shadow-glow-red border border-red-300 animate-pulse">{t.statusOccupied.toUpperCase()}</span>}
+                                {isAvailable && <span className="px-3 py-1 rounded-lg bg-emerald-500 text-navy-950 font-black text-xs">{t.statusAvailable.toUpperCase()}</span>}
+                                {isReserved && <span className="px-3 py-1 rounded-lg bg-amber-500 text-navy-950 font-black text-xs">{t.statusReserved.toUpperCase()}</span>}
                               </div>
 
-                              <div className="absolute bottom-3 left-3 text-xs text-white">
-                                <span>{room.seats} o'rinli ({room.capacityText})</span>
+                              <div className="absolute bottom-3 left-3 text-xs text-white font-medium">
+                                <span>{room.seats} {t.roomSeats} ({room.capacityText})</span>
                               </div>
                             </div>
 
                             <div className="p-4 space-y-2">
                               <div className="flex justify-between items-start">
-                                <h3 className="font-bold text-white text-base">{room.name}</h3>
-                                <button onClick={() => handleDeleteRoom(room.id)} title="Xonani o'chirish" className="text-slate-500 hover:text-rose-400 p-1">
+                                <h3 className="font-bold text-white text-base leading-snug">{room.name}</h3>
+                                <button onClick={() => handleDeleteRoom(room.id)} title="Xonani o'chirish" className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer">
                                   <Icons.Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               </div>
 
                               {isOccupied && (
                                 <div className="p-2.5 rounded-xl bg-red-950/40 border border-red-500/30 text-xs flex justify-between items-center">
-                                  <span>Mehmon: <strong>{room.customer?.name}</strong></span>
+                                  <span>{t.guestName}: <strong>{room.customer?.name}</strong></span>
                                   <span className="text-turquoise-300 font-mono font-bold">{formatUZS(bill)}</span>
                                 </div>
                               )}
 
                               {isReserved && room.reservation && (
                                 <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200">
-                                  <span>⏰ {room.reservation.time} ga: <strong>{room.reservation.name || room.reservation.customerName}</strong></span>
+                                  <span>⏰ {room.reservation.time}: <strong>{room.reservation.name || room.reservation.customerName}</strong></span>
                                 </div>
                               )}
 
@@ -1280,14 +1411,32 @@ export default function App() {
 
                           <div className="p-4 pt-0">
                             <div className="flex gap-2 pt-2 border-t border-white/5">
-                              <button onClick={() => handleOpenRoomDetails(room.id)} className="flex-1 py-2 rounded-xl bg-navy-800 hover:bg-navy-750 text-white text-xs font-semibold">
-                                Tafsilotlar
+                              <button onClick={() => handleOpenRoomDetails(room.id)} className="flex-1 py-2 rounded-xl bg-navy-800 hover:bg-navy-750 text-white text-xs font-semibold cursor-pointer">
+                                {t.openBillBtn}
                               </button>
                               {isOccupied && (
-                                <button onClick={() => handleOpenPayment(room)} className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">
-                                  Hisob & Yopish
+                                <button onClick={() => handleOpenPayment(room)} className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer">
+                                  {t.releaseRoomBtn}
                                 </button>
                               )}
+                              {isAvailable && (
+                                <button onClick={() => handleOpenCheckIn(room)} className="flex-1 py-2 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 text-xs font-bold cursor-pointer">
+                                  {t.statusOccupied}
+                                </button>
+                              )}
+                              {isReserved && (
+                                <button onClick={() => handleOpenCheckIn(room)} className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 text-xs font-bold cursor-pointer">
+                                  {t.statusOccupied}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
                               {isAvailable && (
                                 <button onClick={() => setCheckInModal({ isOpen: true, room })} className="flex-1 py-2 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 text-xs font-bold">
                                   Xonani Ochish
@@ -1489,19 +1638,20 @@ export default function App() {
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                     <div className="flex flex-wrap items-center gap-2">
                       {[
-                        { id: 'ALL', label: 'Barcha Taomlar' },
-                        { id: 'fried', label: 'Qovurilgan Baliq' },
-                        { id: 'grilled', label: 'Gril & Mangal' },
-                        { id: 'soup', label: 'Sho\'rvalar (Uxa)' },
-                        { id: 'baked', label: 'Dimlama Baliq' },
-                        { id: 'seafood', label: 'Dengiz Mahsulotlari' },
-                        { id: 'special', label: 'Maxsus Taomlar' }
+                        { id: 'ALL', label: t.allDishes },
+                        { id: 'fried', label: t.friedFish },
+                        { id: 'grilled', label: t.grillFish },
+                        { id: 'soup', label: t.soupFish },
+                        { id: 'baked', label: t.steamedFish },
+                        { id: 'seafood', label: t.seafood },
+                        { id: 'special', label: t.specialFish }
                       ].map(cat => (
                         <button
                           key={cat.id}
                           onClick={() => setMenuFilter(cat.id)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${menuFilter === cat.id ? 'bg-turquoise-500 text-navy-950 shadow-glow-cyan' : 'bg-navy-850 text-slate-300 hover:bg-navy-800'
-                            }`}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            menuFilter === cat.id ? 'bg-turquoise-500 text-navy-950 shadow-glow-cyan' : 'bg-navy-850 text-slate-300 hover:bg-navy-800'
+                          }`}
                         >
                           {cat.label}
                         </button>
@@ -1509,70 +1659,298 @@ export default function App() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="relative flex-1 sm:w-48">
+                      <div className="relative flex-1 sm:w-52">
                         <input
                           type="text"
-                          placeholder="Taomni qidirish..."
+                          placeholder={t.search}
                           value={menuSearch}
                           onChange={(e) => setMenuSearch(e.target.value)}
-                          className="w-full pl-8 pr-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-xs text-white placeholder-slate-400"
+                          className="w-full pl-8 pr-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-turquoise-400"
                         />
                         <Icons.Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                       </div>
 
                       <button
                         onClick={() => setAddDishModal(true)}
-                        className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-turquoise-500 to-ocean-600 hover:from-turquoise-400 text-navy-950 font-black text-xs shadow-glow-cyan flex items-center gap-1.5"
+                        className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-turquoise-500 to-ocean-600 hover:from-turquoise-400 text-navy-950 font-black text-xs shadow-glow-cyan flex items-center gap-1.5 cursor-pointer"
                       >
                         <Icons.Plus className="w-3.5 h-3.5" />
-                        <span>+ Yangi Taom</span>
+                        <span>{t.addNewDish}</span>
                       </button>
                     </div>
                   </div>
 
                   {/* Food Cards Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {filteredDishes.map(dish => (
-                      <div key={dish.id} className="rounded-2xl overflow-hidden glass-card border border-white/10 flex flex-col justify-between hover:border-turquoise-500/40 transition-all">
-                        <div>
-                          <div className="h-44 w-full relative bg-navy-950">
-                            <img src={dish.image || dish.photo} alt={dish.name} className="w-full h-full object-cover" />
-                            <span className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-black/70 text-turquoise-300 text-[11px] font-bold">
-                              ⚖️ {dish.weight || (dish.weightGrams ? `${dish.weightGrams} gr` : '500 gr')}
-                            </span>
-                            {dish.popular && (
-                              <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-amber-500 text-navy-950 text-[10px] font-extrabold uppercase">
-                                Xit Taom
+                    {filteredDishes.map(rawDish => {
+                      const dish = getLocalizedDish(rawDish, lang);
+                      return (
+                        <div key={dish.id} className="rounded-2xl overflow-hidden glass-card border border-white/10 flex flex-col justify-between hover:border-turquoise-500/40 transition-all">
+                          <div>
+                            <div className="h-44 w-full relative bg-navy-950">
+                              <img src={dish.image || dish.photo} alt={dish.name} className="w-full h-full object-cover" />
+                              <span className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-black/70 text-turquoise-300 text-[11px] font-bold">
+                                ⚖️ {dish.weight || (dish.weightGrams ? `${dish.weightGrams} gr` : '500 gr')}
                               </span>
-                            )}
+                              {dish.popular && (
+                                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-amber-500 text-navy-950 text-[10px] font-extrabold uppercase shadow-sm">
+                                  {t.hitDish}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="p-4 space-y-2">
+                              <div className="flex justify-between items-start">
+                                <h4 className="font-bold text-white text-base leading-snug">{dish.name}</h4>
+                                <button onClick={() => handleDeleteDish(dish.id)} title="Taomni o'chirish" className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer">
+                                  <Icons.Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{dish.description}</p>
+                              <p className="text-[11px] text-cyan-300 font-semibold">
+                                ⏱️ {t.cookingTime}: {dish.cookTime || '20 daqiqa'}
+                              </p>
+                            </div>
                           </div>
 
-                          <div className="p-4 space-y-2">
-                            <div className="flex justify-between items-start">
-                              <h4 className="font-bold text-white text-base">{dish.name}</h4>
-                              <button onClick={() => handleDeleteDish(dish.id)} title="Taomni o'chirish" className="text-slate-500 hover:text-rose-400 p-1">
-                                <Icons.Trash2 className="w-3.5 h-3.5" />
+                          <div className="p-4 pt-0">
+                            <div className="flex justify-between items-center pt-3 border-t border-white/10">
+                              <span className="font-mono font-black text-amber-400 text-base">{formatUZS(dish.price)}</span>
+                              <button
+                                onClick={() => setOrderModal({ isOpen: true, dish, targetRoomId: selectedRoomId || 'r101' })}
+                                className="px-3 py-1.5 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 font-bold text-xs shadow-glow-cyan flex items-center gap-1 cursor-pointer"
+                              >
+                                <Icons.Plus className="w-3.5 h-3.5" />
+                                <span>{t.orderToRoom}</span>
                               </button>
                             </div>
-                            <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{dish.description}</p>
-                            <p className="text-[11px] text-cyan-300 font-semibold">⏱️ Pishish vaqti: {dish.cookTime || '20 daqiqa'}</p>
                           </div>
                         </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
-                        <div className="p-4 pt-0">
-                          <div className="flex justify-between items-center pt-3 border-t border-white/10">
-                            <span className="font-mono font-black text-amber-400 text-base">{formatUZS(dish.price)}</span>
-                            <button
-                              onClick={() => setOrderModal({ isOpen: true, dish, targetRoomId: selectedRoomId || 'r101' })}
-                              className="px-3 py-1.5 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 font-bold text-xs shadow-glow-cyan flex items-center gap-1"
-                            >
-                              <Icons.Plus className="w-3.5 h-3.5" />
-                              <span>Xonaga Buyurtma</span>
-                            </button>
-                          </div>
-                        </div>
+              {/* TAB: STAFF & EMPLOYEES (Xodimlar va Ishchilar) */}
+              {activeTab === 'staff' && (
+                <div className="space-y-6">
+                  {/* Top Header & Fast Action */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="font-extrabold text-white text-lg tracking-tight flex items-center gap-2">
+                        <span>{t.tabStaff}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-bold font-mono">
+                          {staff.length} {t.roomsCount}
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Restoran ofitsiantlari, oshpazlar jamoasi va xizmat ko'rsatish nazorati
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setAddStaffModal(true)}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-turquoise-500 to-cyan-500 hover:from-turquoise-400 hover:to-cyan-400 text-navy-950 font-black text-xs shadow-glow-cyan flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] cursor-pointer"
+                    >
+                      <Icons.Plus className="w-4 h-4" />
+                      <span>{t.addNewStaff}</span>
+                    </button>
+                  </div>
+
+                  {/* Staff KPI Stat Cards */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="p-4 rounded-2xl bg-gradient-to-b from-[#0e1118] to-[#06070a] border border-white/[0.08] shadow-xl">
+                      <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                        <span>{t.allStaff}</span>
+                        <span className="text-cyan-400">👥</span>
                       </div>
+                      <p className="text-2xl font-black text-white mt-1.5 font-sans">{staff.length} ta</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">To'liq shtatdagi xodimlar</p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-gradient-to-b from-[#0e1118] to-[#06070a] border border-emerald-500/30 shadow-xl">
+                      <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                        <span className="text-emerald-400 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                          <span>{t.staffOnDuty}</span>
+                        </span>
+                        <span className="text-emerald-400">🟢</span>
+                      </div>
+                      <p className="text-2xl font-black text-emerald-400 mt-1.5 font-sans">
+                        {staff.filter(s => s.status === 'active').length} ta
+                      </p>
+                      <p className="text-[10px] text-emerald-300/70 mt-0.5">Hozir smenada xizmatda</p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-gradient-to-b from-[#0e1118] to-[#06070a] border border-white/[0.08] shadow-xl">
+                      <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                        <span>{t.staffWaiters}</span>
+                        <span className="text-amber-400">🤵</span>
+                      </div>
+                      <p className="text-2xl font-black text-amber-400 mt-1.5 font-sans">
+                        {staff.filter(s => s.roleType === 'waiter').length} ta
+                      </p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">Stollarga biriktirilgan</p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-gradient-to-b from-[#0e1118] to-[#06070a] border border-white/[0.08] shadow-xl">
+                      <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                        <span>{t.staffChefs}</span>
+                        <span className="text-cyan-300">👨‍🍳</span>
+                      </div>
+                      <p className="text-2xl font-black text-cyan-300 mt-1.5 font-sans">
+                        {staff.filter(s => s.roleType === 'chef').length} ta
+                      </p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">Oshxona & Gril ustalari</p>
+                    </div>
+                  </div>
+
+                  {/* Filter Pills */}
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                    {[
+                      { id: 'ALL', label: t.allStaff, count: staff.length },
+                      { id: 'waiter', label: t.staffWaiters, count: staff.filter(s => s.roleType === 'waiter').length },
+                      { id: 'chef', label: t.staffChefs, count: staff.filter(s => s.roleType === 'chef').length },
+                      { id: 'admin', label: t.staffAdmin, count: staff.filter(s => s.roleType === 'admin').length },
+                      { id: 'cashier', label: t.staffCashiers, count: staff.filter(s => s.roleType === 'cashier').length }
+                    ].map(f => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setStaffRoleFilter(f.id)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 ${
+                          staffRoleFilter === f.id
+                            ? 'bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan'
+                            : 'bg-navy-900 text-slate-400 hover:text-white hover:bg-navy-800 border border-white/5'
+                        }`}
+                      >
+                        <span>{f.label}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${staffRoleFilter === f.id ? 'bg-black/20 text-black' : 'bg-white/10 text-slate-300'}`}>
+                          {f.count}
+                        </span>
+                      </button>
                     ))}
+                  </div>
+
+                  {/* Staff Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {staff
+                      .filter(s => staffRoleFilter === 'ALL' || s.roleType === staffRoleFilter)
+                      .map(member => {
+                        const isOnDuty = member.status === 'active';
+
+                        return (
+                          <div
+                            key={member.id}
+                            className={`rounded-2xl p-5 bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border transition-all duration-300 shadow-xl flex flex-col justify-between hover:-translate-y-1 ${
+                              isOnDuty
+                                ? 'border-white/[0.08] hover:border-turquoise-500/40'
+                                : 'border-white/[0.04] opacity-80 hover:opacity-100'
+                            }`}
+                          >
+                            <div className="space-y-4">
+                              {/* Top Bar: Avatar, Name & Duty Badge */}
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="relative">
+                                    <img
+                                      src={member.avatar}
+                                      alt={member.name}
+                                      className="w-13 h-13 rounded-2xl object-cover border-2 border-white/10 shadow-md"
+                                      style={{ width: '52px', height: '52px' }}
+                                    />
+                                    {/* Online Ping Badge */}
+                                    <span
+                                      className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-black flex items-center justify-center ${
+                                        isOnDuty ? 'bg-emerald-500' : 'bg-slate-500'
+                                      }`}
+                                      title={isOnDuty ? t.staffOnDuty : t.staffOffDuty}
+                                    >
+                                      {isOnDuty && <span className="w-1.5 h-1.5 rounded-full bg-white"></span>}
+                                    </span>
+                                  </div>
+
+                                  <div>
+                                    <h4 className="font-extrabold text-white text-base tracking-tight leading-snug">
+                                      {member.name}
+                                    </h4>
+                                    <p className="text-xs font-semibold text-turquoise-300 flex items-center gap-1.5">
+                                      <span>{member.role}</span>
+                                    </p>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                      {t.staffExperience}: <strong className="text-slate-300">{member.experience}</strong> • ⭐ {member.rating || 5.0}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteStaff(member.id)}
+                                  className="text-slate-500 hover:text-rose-400 transition-colors p-1"
+                                  title="Xodimni o'chirish"
+                                >
+                                  <Icons.Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+
+                              {/* Details Pod */}
+                              <div className="p-3 rounded-xl bg-navy-950/70 border border-white/5 space-y-2 text-xs">
+                                <div className="flex justify-between items-center text-slate-400">
+                                  <span>📞 {t.phone}:</span>
+                                  <a href={`tel:${member.phone}`} className="font-mono text-cyan-300 font-bold hover:underline">
+                                    {member.phone}
+                                  </a>
+                                </div>
+                                <div className="flex justify-between items-center text-slate-400">
+                                  <span>⏰ {t.staffShift}:</span>
+                                  <span className="font-mono text-slate-200 font-bold">{member.shift}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-slate-400">
+                                  <span>💰 {t.staffSalary}:</span>
+                                  <span className="font-mono text-amber-400 font-bold">{member.salary}</span>
+                                </div>
+                              </div>
+
+                              {/* Assigned Rooms */}
+                              <div className="space-y-1.5">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                  {t.staffAssignedRooms}:
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {(member.assignedRooms || []).map((r, ri) => (
+                                    <span
+                                      key={ri}
+                                      className="px-2 py-0.5 rounded-lg bg-turquoise-500/10 border border-turquoise-500/20 text-turquoise-300 text-[10px] font-medium"
+                                    >
+                                      {r}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Bottom Card Actions */}
+                            <div className="pt-4 mt-4 border-t border-white/5 flex items-center justify-between gap-3">
+                              <span className="text-[11px] text-slate-400">
+                                {t.staffTodayOrders}: <strong className="text-white font-mono">{member.todayOrders || 0} ta</strong>
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={() => handleToggleStaffStatus(member.id)}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                  isOnDuty
+                                    ? 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40'
+                                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10'
+                                }`}
+                              >
+                                {isOnDuty ? `✓ ${t.staffOnDuty}` : `⏸ ${t.staffOffDuty}`}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
               )}
@@ -1643,15 +2021,17 @@ export default function App() {
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
                       {[
-                        { id: 'ALL', label: `Barchasi (${allKitchenOrders.length})` },
-                        { id: 'pending', label: 'Kutilmoqda', color: 'text-amber-400' },
-                        { id: 'preparing', label: 'Tayyorlanmoqda', color: 'text-cyan-400' },
-                        { id: 'ready', label: 'Tayyor', color: 'text-emerald-400' }
+                        { id: 'ALL', label: `${t.all} (${allKitchenOrders.length})` },
+                        { id: 'pending', label: t.kitchenPending, color: 'text-amber-400' },
+                        { id: 'preparing', label: t.kitchenCooking, color: 'text-cyan-400' },
+                        { id: 'ready', label: t.kitchenReady, color: 'text-emerald-400' }
                       ].map(st => (
                         <button
                           key={st.id}
                           onClick={() => setOrderStatusFilter(st.id)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${orderStatusFilter === st.id ? 'bg-turquoise-500 text-navy-950' : 'bg-navy-850 text-slate-300'}`}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            orderStatusFilter === st.id ? 'bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan' : 'bg-navy-850 text-slate-300 hover:bg-navy-800'
+                          }`}
                         >
                           {st.label}
                         </button>
@@ -1672,13 +2052,13 @@ export default function App() {
                             <div>
                               <span className="text-xs font-bold text-turquoise-400">№{ord.roomNumber} – {ord.roomName}</span>
                               <h4 className="font-extrabold text-white text-base mt-0.5">{ord.name}</h4>
-                              <p className="text-xs text-slate-400 font-mono">Miqdori: <strong className="text-white text-sm">{ord.quantity}x</strong></p>
+                              <p className="text-xs text-slate-400 font-mono">{t.amount}: <strong className="text-white text-sm">{ord.quantity}x</strong></p>
                             </div>
                             <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${ord.status === 'ready' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
                               ord.status === 'preparing' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' :
                                 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                               }`}>
-                              {ord.status === 'ready' ? 'Tayyor' : ord.status === 'preparing' ? 'Pishmoqda' : 'Kutilmoqda'}
+                              {ord.status === 'ready' ? t.kitchenReady : ord.status === 'preparing' ? t.kitchenCooking : t.kitchenPending}
                             </span>
                           </div>
 
@@ -1692,15 +2072,21 @@ export default function App() {
                             <span className="text-slate-400">⏰ {ord.time}</span>
                             <div className="flex gap-1.5">
                               {ord.status === 'pending' && (
-                                <button onClick={() => handleUpdateOrderStatus(ord.roomId, ord.id, 'preparing')} className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs">
-                                  Pishirishni Boshlash
+                                <button onClick={() => handleUpdateOrderStatus(ord.roomId, ord.id, 'preparing')} className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs cursor-pointer">
+                                  {t.cookDish}
                                 </button>
                               )}
                               {ord.status === 'preparing' && (
-                                <button onClick={() => handleUpdateOrderStatus(ord.roomId, ord.id, 'ready')} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">
-                                  Tayyor Bo'ldi
+                                <button onClick={() => handleUpdateOrderStatus(ord.roomId, ord.id, 'ready')} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer">
+                                  {t.readyDish}
                                 </button>
                               )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                               {ord.status === 'ready' && (
                                 <button onClick={() => handleRemoveOrderItem(ord.roomId, ord.id)} className="px-3 py-1.5 rounded-lg bg-navy-800 text-slate-300 hover:text-white font-semibold text-xs">
                                   Tugatish & Olib ketish
@@ -1745,12 +2131,12 @@ export default function App() {
                         </div>
 
                         <div className="flex gap-2">
-                          <button onClick={() => handlePrintCurrentRoomBill(room)} className="flex-1 py-2 rounded-xl bg-navy-800 text-slate-200 font-bold text-xs flex items-center justify-center gap-1">
+                          <button onClick={() => handlePrintCurrentRoomBill(room)} className="flex-1 py-2 rounded-xl bg-navy-800 text-slate-200 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer">
                             <Icons.Printer className="w-3.5 h-3.5 text-turquoise-400" />
-                            <span>Chek</span>
+                            <span>{t.printReceipt}</span>
                           </button>
-                          <button onClick={() => handleOpenPayment(room)} className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">
-                            To'lovni Yopish
+                          <button onClick={() => handleOpenPayment(room)} className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer">
+                            {t.releaseRoomBtn}
                           </button>
                         </div>
                       </div>
@@ -1759,18 +2145,20 @@ export default function App() {
 
                   {/* Closed Bills History */}
                   <div className="pt-6">
-                    <h3 className="font-bold text-white text-base mb-3">To'langan Hisoblar Tarixi</h3>
+                    <h3 className="font-bold text-white text-base mb-3">
+                      {lang === 'ru' ? 'История Оплаченных Счетов' : lang === 'en' ? 'Paid Invoices History' : "To'langan Hisoblar Tarixi"}
+                    </h3>
                     <div className="glass-card rounded-2xl border border-white/10 overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs">
                           <thead className="bg-navy-900 border-b border-white/10 text-slate-400 uppercase text-[10px]">
                             <tr>
-                              <th className="p-3.5">Chek ID</th>
-                              <th className="p-3.5">Xona</th>
-                              <th className="p-3.5">Mijoz</th>
-                              <th className="p-3.5">Sana & Vaqt</th>
-                              <th className="p-3.5">To'lov Usuli</th>
-                              <th className="p-3.5 text-right">Summa</th>
+                              <th className="p-3.5">{lang === 'ru' ? 'Чек ID' : lang === 'en' ? 'Receipt ID' : 'Chek ID'}</th>
+                              <th className="p-3.5">{t.roomBadge}</th>
+                              <th className="p-3.5">{t.guestName}</th>
+                              <th className="p-3.5">{t.date} & {t.time}</th>
+                              <th className="p-3.5">{lang === 'ru' ? 'Способ Оплаты' : lang === 'en' ? 'Payment Method' : "To'lov Usuli"}</th>
+                              <th className="p-3.5 text-right">{t.total}</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-white/5">
@@ -1797,17 +2185,25 @@ export default function App() {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h3 className="font-bold text-white text-base">Restoran Tushumi va Statistikasi</h3>
-                      <p className="text-xs text-slate-400">Kunlik, haftalik va oylik daromad tahlili</p>
+                      <h3 className="font-bold text-white text-base">
+                        {lang === 'ru' ? 'Выручка и Статистика Ресторана' : lang === 'en' ? 'Restaurant Revenue & Analytics' : "Restoran Tushumi va Statistikasi"}
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        {lang === 'ru' ? 'Анализ ежедневных, еженедельных и ежемесячных доходов' : lang === 'en' ? 'Daily, weekly and monthly income breakdown' : "Kunlik, haftalik va oylik daromad tahlili"}
+                      </p>
                     </div>
                     <div className="flex gap-2">
                       {['daily', 'weekly', 'monthly'].map(p => (
                         <button
                           key={p}
                           onClick={() => setReportPeriod(p)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase ${reportPeriod === p ? 'bg-turquoise-500 text-navy-950 font-black' : 'bg-navy-850 text-slate-300'}`}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase cursor-pointer ${reportPeriod === p ? 'bg-turquoise-500 text-navy-950 font-black' : 'bg-navy-850 text-slate-300'}`}
                         >
-                          {p === 'daily' ? 'Kunlik' : p === 'weekly' ? 'Haftalik' : 'Oylik'}
+                          {p === 'daily'
+                            ? (lang === 'ru' ? 'День' : lang === 'en' ? 'Daily' : 'Kunlik')
+                            : p === 'weekly'
+                            ? (lang === 'ru' ? 'Неделя' : lang === 'en' ? 'Weekly' : 'Haftalik')
+                            : (lang === 'ru' ? 'Месяц' : lang === 'en' ? 'Monthly' : 'Oylik')}
                         </button>
                       ))}
                     </div>
@@ -1859,16 +2255,47 @@ export default function App() {
               {activeTab === 'settings' && (
                 <div className="space-y-6 max-w-2xl">
                   <div>
-                    <h3 className="font-bold text-white text-base">Restoran Sozlamalari</h3>
-                    <p className="text-xs text-slate-400">Muassasa ma'lumotlari va xizmat haqi parametrlari</p>
+                    <h3 className="font-bold text-white text-base">{t.tabSettings}</h3>
+                    <p className="text-xs text-slate-400">Muassasa ma'lumotlari, til va xizmat haqi parametrlari</p>
+                  </div>
+
+                  {/* Language Selector in Settings */}
+                  <div className="glass-card rounded-2xl p-6 border border-white/10 space-y-3 text-xs">
+                    <label className="text-slate-300 block font-semibold text-sm">
+                      🌐 {t.languageSelect}:
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { id: 'uz', name: "O'zbek tili", flag: '🇺🇿', desc: "Lotin yozuvida" },
+                        { id: 'ru', name: "Русский язык", flag: '🇷🇺', desc: "Интерфейс на русском" },
+                        { id: 'en', name: "English", flag: '🇬🇧', desc: "Full English interface" }
+                      ].map(item => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleLanguageChange(item.id)}
+                          className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                            lang === item.id
+                              ? 'bg-turquoise-500/20 border-turquoise-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.3)]'
+                              : 'bg-navy-900 border-white/10 text-slate-400 hover:text-white hover:bg-white/5'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xl">{item.flag}</span>
+                            <span className="font-extrabold text-sm text-white">{item.name}</span>
+                          </div>
+                          <p className="text-[11px] text-slate-400">{item.desc}</p>
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <form onSubmit={(e) => {
                     e.preventDefault();
-                    showToast("Sozlamalar muvaffaqiyatli saqlandi!", 'success');
+                    showToast(t.success, 'success');
                   }} className="glass-card rounded-2xl p-6 border border-white/10 space-y-4 text-xs">
                     <div>
-                      <label className="text-slate-300 block mb-1 font-semibold">Restoran Nomi:</label>
+                      <label className="text-slate-300 block mb-1 font-semibold">{t.restaurantInfo}:</label>
                       <input
                         type="text"
                         value={settings.name}
@@ -1877,7 +2304,7 @@ export default function App() {
                       />
                     </div>
                     <div>
-                      <label className="text-slate-300 block mb-1 font-semibold">Manzil:</label>
+                      <label className="text-slate-300 block mb-1 font-semibold">{t.address}:</label>
                       <input
                         type="text"
                         value={settings.address}
@@ -1887,7 +2314,7 @@ export default function App() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-slate-300 block mb-1 font-semibold">Telefon Raqam:</label>
+                        <label className="text-slate-300 block mb-1 font-semibold">{t.phone}:</label>
                         <input
                           type="text"
                           value={settings.phone}
@@ -1896,7 +2323,7 @@ export default function App() {
                         />
                       </div>
                       <div>
-                        <label className="text-slate-300 block mb-1 font-semibold">Xizmat Haqi Foizi (%):</label>
+                        <label className="text-slate-300 block mb-1 font-semibold">{t.serviceChargePct}:</label>
                         <input
                           type="number"
                           value={settings.serviceChargePercent}
@@ -1906,7 +2333,7 @@ export default function App() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-slate-300 block mb-1 font-semibold">Ish Vaqti:</label>
+                      <label className="text-slate-300 block mb-1 font-semibold">{t.workingHours}:</label>
                       <input
                         type="text"
                         value={settings.workingHours}
@@ -1915,10 +2342,10 @@ export default function App() {
                       />
                     </div>
                     <div className="pt-2 flex justify-between items-center">
-                      <button type="submit" className="px-5 py-2.5 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 font-black shadow-glow-cyan">
-                        O'zgarishlarni Saqlash
+                      <button type="submit" className="px-5 py-2.5 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 font-black shadow-glow-cyan cursor-pointer">
+                        {t.save}
                       </button>
-                      <button type="button" onClick={handleResetDemoData} className="px-4 py-2.5 rounded-xl bg-navy-800 text-rose-400 hover:bg-rose-950 font-bold border border-rose-500/20">
+                      <button type="button" onClick={handleResetDemoData} className="px-4 py-2.5 rounded-xl bg-navy-800 text-rose-400 hover:bg-rose-950 font-bold border border-rose-500/20 cursor-pointer">
                         Boshlang'ich Ma'lumotlarni Qaytarish
                       </button>
                     </div>
@@ -2373,6 +2800,162 @@ export default function App() {
               <div className="pt-2 flex gap-2">
                 <button type="button" onClick={() => setAddDishModal(false)} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
                 <button type="submit" className="flex-1 py-2.5 rounded-xl bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan">Menyuga Qo'shish</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Add New Staff Member (Yangi Xodim Qo'shish) */}
+      {addStaffModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-lg rounded-3xl bg-[#0f1117] border border-white/10 p-6 sm:p-7 space-y-4 text-xs text-white shadow-2xl my-auto">
+            <div className="flex justify-between items-center pb-3 border-b border-white/10">
+              <div>
+                <h3 className="font-extrabold text-white text-lg tracking-tight flex items-center gap-2">
+                  <span>{t.addNewStaff}</span>
+                </h3>
+                <p className="text-[11px] text-slate-400">Yangi xodim ma'lumotlari, smenasi va biriktirilgan zallari</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAddStaffModal(false)}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center text-lg transition-colors cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                handleAddNewStaff({
+                  name: fd.get('name'),
+                  role: fd.get('role'),
+                  roleType: fd.get('roleType'),
+                  phone: fd.get('phone'),
+                  shift: fd.get('shift'),
+                  salary: fd.get('salary'),
+                  experience: fd.get('experience'),
+                  assignedRooms: fd.get('assignedRooms'),
+                  avatar: fd.get('avatar') || undefined
+                });
+              }}
+              className="space-y-3.5"
+            >
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">Xodim F.I.O.:</label>
+                <input
+                  name="name"
+                  required
+                  placeholder="Masalan: Dilshod Rahimov"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-bold placeholder-slate-500 focus:outline-none focus:border-turquoise-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Lavozimi (Nomi):</label>
+                  <input
+                    name="role"
+                    required
+                    placeholder="Masalan: Katta Ofitsiant"
+                    defaultValue="Ofitsiant"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-semibold focus:outline-none focus:border-turquoise-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Xodim Toifasi:</label>
+                  <select
+                    name="roleType"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-semibold focus:outline-none focus:border-turquoise-400"
+                  >
+                    <option value="waiter">🤵 Ofitsiant (Waiter)</option>
+                    <option value="chef">👨‍🍳 Oshpaz (Chef / Gril)</option>
+                    <option value="cashier">💳 Kassir (Cashier)</option>
+                    <option value="admin">👑 Ma'muriyat (Admin)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Telefon Raqami:</label>
+                  <input
+                    name="phone"
+                    required
+                    defaultValue="+998 "
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold focus:outline-none focus:border-turquoise-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Ish Smenasi:</label>
+                  <input
+                    name="shift"
+                    defaultValue="11:00 - 23:30"
+                    placeholder="11:00 - 23:30"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-mono focus:outline-none focus:border-turquoise-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Oylik Maoshi / Stavka:</label>
+                  <input
+                    name="salary"
+                    defaultValue="5 000 000 UZS"
+                    placeholder="5 000 000 UZS"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold text-amber-400 focus:outline-none focus:border-turquoise-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Ish Tajribasi:</label>
+                  <input
+                    name="experience"
+                    defaultValue="2 yil"
+                    placeholder="Masalan: 3 yil"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white focus:outline-none focus:border-turquoise-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">
+                  Biriktirilgan Zallar (Vergul bilan ajrating):
+                </label>
+                <input
+                  name="assignedRooms"
+                  defaultValue="№101 VIP, №102"
+                  placeholder="№101 Dengiz Marvaridi, №102"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white focus:outline-none focus:border-turquoise-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">Rasm / Avatar URL (Ixtiyoriy):</label>
+                <input
+                  name="avatar"
+                  placeholder="https://images.unsplash.com/photo-..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white placeholder-slate-600 focus:outline-none focus:border-turquoise-400"
+                />
+              </div>
+
+              <div className="pt-3 flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setAddStaffModal(false)}
+                  className="flex-1 py-3 rounded-xl bg-navy-800 hover:bg-navy-750 text-slate-300 font-bold transition-colors cursor-pointer"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-turquoise-500 to-cyan-500 hover:from-turquoise-400 text-navy-950 font-black shadow-glow-cyan transition-transform transform active:scale-95 cursor-pointer"
+                >
+                  {t.confirm}
+                </button>
               </div>
             </form>
           </div>

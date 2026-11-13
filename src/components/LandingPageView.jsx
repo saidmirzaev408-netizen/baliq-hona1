@@ -8,6 +8,8 @@ export default function LandingPageView({
   dishes,
   restaurant,
   currentUser,
+  lang = 'uz',
+  onLanguageChange,
   onOpenLogin,
   onOpenRegister,
   onLogout,
@@ -195,7 +197,7 @@ export default function LandingPageView({
           
           {/* Logo */}
           <div className="flex items-center cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <FishHouseLogo className="h-14" textSize="text-2xl" showSubtitle={true} />
+            <FishHouseLogo className="h-11 sm:h-12" textSize="text-xl sm:text-2xl" showSubtitle={true} />
           </div>
 
           {/* Navigation Links */}
@@ -231,9 +233,34 @@ export default function LandingPageView({
             </a>
           </nav>
 
-          {/* Right Header Actions: Search, Booking Button, Auth */}
+          {/* Right Header Actions: Search, Booking Button, Language, Auth */}
           <div className="flex items-center space-x-3">
             
+            {/* Multi-Language Selector (UZ / RU / EN) */}
+            {onLanguageChange && (
+              <div className="flex items-center bg-[#13161c] border border-white/15 rounded-xl p-0.5 gap-0.5 shadow-inner">
+                {[
+                  { id: 'uz', short: 'UZ', flag: '🇺🇿' },
+                  { id: 'ru', short: 'RU', flag: '🇷🇺' },
+                  { id: 'en', short: 'EN', flag: '🇬🇧' },
+                ].map(item => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onLanguageChange(item.id)}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      lang === item.id
+                        ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black shadow-[0_0_12px_rgba(6,182,212,0.4)]'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <span>{item.flag}</span>
+                    <span>{item.short}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Quick Search Input */}
             <div className="relative hidden md:block w-48 xl:w-56">
               <input
@@ -261,20 +288,26 @@ export default function LandingPageView({
               <span className="sm:hidden">Band Qilish</span>
             </button>
 
-            {/* Auth Profile / Login Button */}
+            {/* Auth Profile / Login Button - Luxury Glass Pill */}
             {currentUser ? (
-              <div className="relative flex items-center space-x-2 bg-navy-900 border border-white/15 px-3 py-1.5 rounded-xl">
-                <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-turquoise-500 to-ocean-500 flex items-center justify-center text-xs font-bold text-navy-950">
-                  {currentUser.name.charAt(0)}
+              <div className="relative flex items-center gap-2 bg-gradient-to-r from-[#131722]/90 via-[#0e111a]/95 to-[#131722]/90 border border-cyan-500/25 px-2.5 py-1.5 rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.5)]">
+                <div className="relative flex-shrink-0">
+                  <div className="w-6 h-6 rounded-xl bg-gradient-to-tr from-cyan-600 to-sky-400 p-[1px]">
+                    <div className="w-full h-full rounded-[11px] bg-[#070b12] flex items-center justify-center text-[10px] font-black text-cyan-300 uppercase">
+                      {currentUser.name ? currentUser.name.charAt(0) : 'U'}
+                    </div>
+                  </div>
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-black"></span>
                 </div>
-                <div className="hidden md:block text-left text-xs leading-none">
-                  <p className="font-bold text-white truncate max-w-[90px]">{currentUser.name.split(' ')[0]}</p>
-                  <p className="text-[10px] text-turquoise-400 capitalize">{currentUser.role}</p>
+                <div className="hidden sm:block text-left text-xs leading-none">
+                  <p className="font-extrabold text-white truncate max-w-[100px]">{currentUser.name.split(' ')[0]}</p>
+                  <p className="text-[9px] text-cyan-400 font-bold uppercase mt-0.5">{currentUser.role}</p>
                 </div>
                 <button
+                  type="button"
                   onClick={onLogout}
                   title="Chiqish"
-                  className="text-slate-400 hover:text-rose-400 p-0.5 transition-colors"
+                  className="p-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-300 hover:text-white border border-rose-500/30 transition-all cursor-pointer ml-1"
                 >
                   <Icons.Logout className="w-3.5 h-3.5" />
                 </button>

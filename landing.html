@@ -488,19 +488,44 @@
           <header className="sticky top-0 z-40 bg-navy-950/90 backdrop-blur-md border-b border-white/10 shadow-2xl transition-all">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
 
-              {/* Logo */}
-              <div className="flex items-center space-x-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-ocean-600 via-turquoise-500 to-cyan-300 p-0.5 shadow-glow-cyan flex items-center justify-center transform hover:rotate-6 transition-transform">
-                  <div className="w-full h-full bg-navy-950 rounded-[14px] flex items-center justify-center text-turquoise-400">
-                    <Icons.Fish className="w-6 h-6 animate-pulse" />
+              {/* Logo: Glowing 3D Neon Aquarium Twin */}
+              <div className="flex items-center space-x-3.5 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                <div className="relative group flex-shrink-0">
+                  <div className="absolute -inset-1 rounded-2xl bg-cyan-400/40 blur-md opacity-80 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-b from-[#061527] via-[#04101e] to-[#02070e] border-2 border-cyan-400/80 shadow-[0_0_20px_rgba(6,182,212,0.6)] overflow-hidden flex items-center justify-center">
+                    <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
+                      <rect width="100" height="100" fill="#061e38" />
+                      <ellipse cx="50" cy="95" rx="45" ry="10" fill="#030c17" />
+                      {/* Pebbles & Plants */}
+                      <ellipse cx="28" cy="94" rx="18" ry="7" fill="#1e293b" />
+                      <ellipse cx="68" cy="95" rx="22" ry="7" fill="#0f172a" />
+                      <path d="M12,95 Q8,75 14,60 Q20,74 16,95 Z" fill="#14b8a6" opacity="0.9" />
+                      <path d="M84,95 Q88,72 82,56 Q78,74 81,95 Z" fill="#2dd4bf" opacity="0.9" />
+                      {/* Tail & Fins */}
+                      <path d="M26,51 L10,38 Q16,51 10,64 L26,53 Z" fill="#38bdf8" stroke="#67e8f9" strokeWidth="0.75" />
+                      <path d="M42,36 Q52,24 64,33 Q54,36 46,38 Z" fill="#0284c7" stroke="#67e8f9" strokeWidth="0.75" />
+                      {/* Fish Body */}
+                      <path d="M24,52 C28,42 42,34 60,37 C73,39 82,47 84,52 C82,58 71,67 56,67 C38,67 27,61 24,52 Z" fill="#38bdf8" stroke="#67e8f9" strokeWidth="1" />
+                      <path d="M32,54 C38,62 52,65 62,64 C52,62 42,56 36,53 Z" fill="#e0f2fe" opacity="0.9" />
+                      {/* Eye */}
+                      <circle cx="70" cy="48" r="4.2" fill="#ffffff" />
+                      <circle cx="70.5" cy="48" r="3" fill="#082f49" />
+                      <circle cx="71.2" cy="47.2" r="1.3" fill="#ffffff" />
+                      {/* Bubbles */}
+                      <circle cx="75" cy="32" r="2.8" stroke="#67e8f9" strokeWidth="1" fill="none" />
+                      <circle cx="81" cy="22" r="3.6" stroke="#67e8f9" strokeWidth="1.2" fill="none" />
+                      <circle cx="77" cy="14" r="2" stroke="#bae6fd" strokeWidth="0.8" fill="none" />
+                    </svg>
                   </div>
                 </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-display font-black text-2xl tracking-wider text-white">FISH HOUSE</span>
-                    <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded bg-turquoise-500/20 text-turquoise-300 border border-turquoise-500/30">Baliq</span>
+                <div className="flex flex-col leading-none">
+                  <div className="flex items-center">
+                    <span className="font-black text-2xl tracking-wider text-white">FISH&nbsp;</span>
+                    <span className="font-black text-2xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-400">HOUSE</span>
                   </div>
-                  <p className="text-[10px] uppercase tracking-widest text-turquoise-400 font-semibold">Premium Seafood Restaurant</p>
+                  <span className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-cyan-400 mt-1">
+                    — AQUARIUM & FISH RESTAURANT —
+                  </span>
                 </div>
               </div>
 
