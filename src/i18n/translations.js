@@ -71,6 +71,8 @@ export const translations = {
     btnQuickBook: "Stol Band Qilish",
     soundOn: "Ovoz Yoniq",
     soundOff: "Ovoz O'chiq",
+    themeLight: "Oq fon",
+    themeDark: "Qora fon",
 
     // Dashboard Stats
     statTodayRevenue: "Bugungi Tushum",
@@ -106,6 +108,7 @@ export const translations = {
     noActiveOrders: "Hozircha buyurtma yo'q",
     openBillBtn: "Buyurtma berish / Hisob",
     releaseRoomBtn: "Xonani bo'shatish",
+    occupyRoomBtn: "Занять",
 
     // Menu Tab
     addNewDish: "+ Yangi Taom",
@@ -266,6 +269,8 @@ export const translations = {
     btnQuickBook: "Забронировать Стол",
     soundOn: "Звук Вкл",
     soundOff: "Звук Выкл",
+    themeLight: "Светлая тема",
+    themeDark: "Темная тема",
 
     // Dashboard Stats
     statTodayRevenue: "Выручка Сегодня",
@@ -301,6 +306,7 @@ export const translations = {
     noActiveOrders: "Заказов пока нет",
     openBillBtn: "Заказ / Счет",
     releaseRoomBtn: "Освободить зал",
+    occupyRoomBtn: "Занять",
 
     // Menu Tab
     addNewDish: "+ Новое Блюдо",
@@ -461,6 +467,8 @@ export const translations = {
     btnQuickBook: "Book a Table",
     soundOn: "Sound On",
     soundOff: "Sound Off",
+    themeLight: "Light Mode",
+    themeDark: "Dark Mode",
 
     // Dashboard Stats
     statTodayRevenue: "Today's Revenue",
@@ -496,6 +504,7 @@ export const translations = {
     noActiveOrders: "No active orders yet",
     openBillBtn: "Order / View Bill",
     releaseRoomBtn: "Check Out & Release",
+    occupyRoomBtn: "Occupy",
 
     // Menu Tab
     addNewDish: "+ New Dish",

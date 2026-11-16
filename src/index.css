@@ -72,3 +72,189 @@
   }
 }
 
+/* ========================================================
+   LIGHT THEME (OQ FON) COMPREHENSIVE STYLING
+   ======================================================== */
+html.light-theme,
+html.light-theme body {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html.light-theme .min-h-screen {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html.light-theme ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+html.light-theme ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+html.light-theme ::-webkit-scrollbar-thumb:hover {
+  background: #0891b2;
+}
+
+/* Structural Layout (Sidebar, Header, Main) */
+html.light-theme aside {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.04);
+}
+html.light-theme aside > div:first-child {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light-theme header {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Top Banner Bar */
+html.light-theme .top-banner-bar {
+  background: linear-gradient(to right, #ffffff, #f8fafc, #ffffff) !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Cards & Glass Containers */
+html.light-theme .glass-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03) !important;
+}
+html.light-theme .glass-card-hover:hover {
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.1), 0 0 15px -2px rgba(6, 182, 212, 0.25) !important;
+  border-color: rgba(6, 182, 212, 0.5) !important;
+}
+
+/* Background Utility Overrides */
+html.light-theme .bg-navy-950,
+html.light-theme .bg-black {
+  background-color: #f8fafc !important;
+  background-image: none !important;
+}
+
+html.light-theme [class*="from-\[\#0e1118\]"],
+html.light-theme .bg-navy-900,
+html.light-theme .bg-\[\#08090c\],
+html.light-theme .bg-\[\#07090d\],
+html.light-theme .bg-\[\#040507\],
+html.light-theme .bg-\[\#070b12\],
+html.light-theme .bg-\[\#10080a\],
+html.light-theme .bg-\[\#100c07\],
+html.light-theme .bg-\[\#080d0b\] {
+  background-image: none !important;
+  background-color: #ffffff !important;
+}
+
+html.light-theme .bg-navy-850,
+html.light-theme .bg-navy-800,
+html.light-theme .bg-\[\#13161c\],
+html.light-theme .bg-\[\#181b22\] {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+
+html.light-theme .hover\:bg-navy-750:hover,
+html.light-theme .bg-navy-750 {
+  background-color: #e2e8f0 !important;
+}
+
+/* Border Overrides */
+html.light-theme [class*="border-white"] {
+  border-color: #e2e8f0 !important;
+}
+
+/* Typography Overrides */
+html.light-theme .text-white {
+  color: #0f172a !important;
+}
+html.light-theme .text-slate-100,
+html.light-theme .text-slate-200,
+html.light-theme .text-slate-300 {
+  color: #334155 !important;
+}
+html.light-theme .text-slate-400 {
+  color: #64748b !important;
+}
+
+/* Form Inputs, Selects, Textareas */
+html.light-theme input,
+html.light-theme select,
+html.light-theme textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+html.light-theme input::placeholder,
+html.light-theme textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Preservation of High-Contrast Action Buttons */
+html.light-theme .bg-turquoise-500,
+html.light-theme .hover\:bg-turquoise-400:hover {
+  background-color: #06b6d4 !important;
+  color: #000000 !important;
+}
+html.light-theme .bg-turquoise-500 span,
+html.light-theme .bg-turquoise-500 strong {
+  color: #000000 !important;
+}
+html.light-theme .bg-emerald-600,
+html.light-theme .bg-emerald-500,
+html.light-theme .hover\:bg-emerald-500:hover,
+html.light-theme .bg-emerald-600 *,
+html.light-theme .bg-emerald-500 * {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+}
+html.light-theme .bg-rose-600,
+html.light-theme .bg-rose-500,
+html.light-theme .bg-red-600,
+html.light-theme .bg-rose-600 *,
+html.light-theme .bg-rose-500 *,
+html.light-theme .bg-red-600 * {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+html.light-theme .bg-amber-500,
+html.light-theme .hover\:bg-amber-400:hover,
+html.light-theme .bg-amber-500 * {
+  background-color: #f59e0b !important;
+  color: #000000 !important;
+}
+html.light-theme .shimmer-badge,
+html.light-theme .shimmer-badge * {
+  color: #ffffff !important;
+}
+
+/* Modal Backdrops in Light Theme */
+html.light-theme .fixed.inset-0.bg-black\/80 {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+}
+
+/* Footer Styling in Light Theme */
+html.light-theme footer {
+  background-color: #0b1120 !important;
+  color: #f1f5f9 !important;
+}
+html.light-theme footer .text-white {
+  color: #ffffff !important;
+}
+html.light-theme footer .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spinSlow 12s linear infinite;
+}
+
+

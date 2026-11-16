@@ -10,6 +10,8 @@ export default function LandingPageView({
   currentUser,
   lang = 'uz',
   onLanguageChange,
+  theme = 'dark',
+  onToggleTheme,
   onOpenLogin,
   onOpenRegister,
   onLogout,
@@ -259,6 +261,22 @@ export default function LandingPageView({
                   </button>
                 ))}
               </div>
+            )}
+
+            {/* Theme Toggle (Oq / Qora Fon) */}
+            {onToggleTheme && (
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                className={`p-2 rounded-xl border text-xs font-bold transition-all shadow-inner hover:scale-105 cursor-pointer ${
+                  theme === 'light'
+                    ? 'bg-amber-500/20 text-amber-500 border-amber-500/50'
+                    : 'bg-[#13161c] hover:bg-[#1a1f2b] text-slate-200 border-white/15'
+                }`}
+                title={theme === 'dark' ? "Oq fonga o'tish ☀️" : "Qora fonga o'tish 🌙"}
+              >
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
             )}
 
             {/* Quick Search Input */}

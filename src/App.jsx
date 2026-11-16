@@ -101,6 +101,40 @@ export default function App() {
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3500);
   };
 
+  // Theme State: 'dark' (Qora fon) or 'light' (Oq fon)
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem('FISH_HOUSE_THEME') || 'dark';
+    } catch (e) {
+      return 'dark';
+    }
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'light') {
+      root.classList.add('light-theme');
+      root.classList.remove('dark');
+      document.body.classList.remove('bg-black');
+      document.body.classList.add('bg-slate-100', 'text-slate-900');
+    } else {
+      root.classList.remove('light-theme');
+      root.classList.add('dark');
+      document.body.classList.remove('bg-slate-100', 'text-slate-900');
+      document.body.classList.add('bg-black');
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    try {
+      localStorage.setItem('FISH_HOUSE_THEME', nextTheme);
+    } catch (e) { }
+    AudioService.playClick();
+    showToast(nextTheme === 'light' ? "Oq fon rejimiga o'tildi ☀️" : "Qora fon rejimiga o'tildi 🌙", 'info');
+  };
+
   useEffect(() => {
     AudioService.enabled = soundEnabled;
   }, [soundEnabled]);
@@ -226,6 +260,11 @@ export default function App() {
     setPaymentModal({ isOpen: true, room });
   };
 
+  const handleOpenCheckIn = (room) => {
+    AudioService.playClick();
+    setCheckInModal({ isOpen: true, room });
+  };
+
   const handleUpdateRoomStatus = (roomId, newStatus) => {
     AudioService.playClick();
     setRooms(prev => prev.map(r => {
@@ -249,6 +288,7 @@ export default function App() {
   };
 
   const handleCheckInGuest = (roomId, guestData) => {
+    AudioService.playSuccess();
     setRooms(prev => prev.map(r => {
       if (r.id === roomId) {
         return {
@@ -261,13 +301,15 @@ export default function App() {
             checkInTime: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
             waiter: guestData.waiter || (currentUser ? currentUser.name : 'Ofitsiant'),
             notes: guestData.notes || ''
-          }
+          },
+          reservation: null
         };
       }
       return r;
     }));
+    setReservations(prev => prev.map(res => res.roomId === roomId && res.status === 'confirmed' ? { ...res, status: 'seated' } : res));
     setCheckInModal({ isOpen: false, room: null });
-    showToast("Xona ochildi va ZANIT holatiga o'tkazildi!", 'success');
+    showToast("Xona muvaffaqiyatli band qilindi (Занято)!", 'success');
   };
 
   const handleAddFoodToRoom = (roomId, dish, quantity = 1, notes = '') => {
@@ -638,7 +680,7 @@ export default function App() {
       )}
 
       {/* Top Banner: Mode, Language Switcher & User Bar */}
-      <div className="bg-gradient-to-r from-black via-[#0b0c10] to-black border-b border-white/10 px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-3 z-30 relative">
+      <div className="top-banner-bar bg-gradient-to-r from-black via-[#0b0c10] to-black border-b border-white/10 px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-3 z-30 relative">
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -649,68 +691,98 @@ export default function App() {
 
           <button
             onClick={() => setViewMode(viewMode === 'admin' ? 'portal' : 'admin')}
-            className="px-3 py-1 rounded-lg bg-navy-800 hover:bg-navy-750 text-slate-300 hover:text-white border border-white/10 text-xs font-semibold transition-all flex items-center gap-1.5"
+            className="px-3 py-1 rounded-lg bg-navy-800 hover:bg-navy-750 text-slate-300 hover:text-white border border-white/10 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <span>{viewMode === 'admin' ? "🌐" : "🏢"}</span>
             <span>{viewMode === 'admin' ? t.btnPortal : t.btnAdmin}</span>
           </button>
         </div>
 
-        {/* Multi-Language Selector (UZ / RU / EN) */}
-        <div className="flex items-center bg-[#13161c] border border-white/15 rounded-xl p-1 gap-1 shadow-inner">
-          {[
-            { id: 'uz', label: "O'zbek", short: 'UZ', flag: '🇺🇿' },
-            { id: 'ru', label: 'Русский', short: 'RU', flag: '🇷🇺' },
-            { id: 'en', label: 'English', short: 'EN', flag: '🇬🇧' },
-          ].map(item => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => handleLanguageChange(item.id)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${lang === item.id
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.5)] scale-105'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-              title={item.label}
-            >
-              <span>{item.flag}</span>
-              <span>{item.short}</span>
-            </button>
-          ))}
+        {/* Multi-Language Selector (UZ / RU / EN) & Theme Toggle (Oq / Qora Fon) */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-[#13161c] border border-white/15 rounded-xl p-1 gap-1 shadow-inner">
+            {[
+              { id: 'uz', label: "O'zbek", short: 'UZ', flag: '🇺🇿' },
+              { id: 'ru', label: 'Русский', short: 'RU', flag: '🇷🇺' },
+              { id: 'en', label: 'English', short: 'EN', flag: '🇬🇧' },
+            ].map(item => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => handleLanguageChange(item.id)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${lang === item.id
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.5)] scale-105'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  }`}
+                title={item.label}
+              >
+                <span>{item.flag}</span>
+                <span>{item.short}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Theme Toggle Button (Oq va Qora Fon Rejimi) */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-black transition-all shadow-inner hover:scale-105 cursor-pointer ${theme === 'light'
+              ? 'bg-amber-500/20 text-amber-500 border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+              : 'bg-[#13161c] hover:bg-[#1a1f2b] text-slate-200 border-white/15'
+              }`}
+            title={theme === 'dark' ? "Kunduzgi (Oq) fonga o'tish" : "Tungi (Qora) fonga o'tish"}
+          >
+            {theme === 'dark' ? (
+              <>
+                <Icons.Sun className="w-3.5 h-3.5 text-amber-400 animate-spin-slow" />
+                <span className="text-amber-300">{t.themeLight || "Oq fon"}</span>
+              </>
+            ) : (
+              <>
+                <Icons.Moon className="w-3.5 h-3.5 text-cyan-500" />
+                <span className="text-slate-700">{t.themeDark || "Qora fon"}</span>
+              </>
+            )}
+          </button>
         </div>
 
         {/* User Auth Info & Login/Register Button - Luxury Glass Pill */}
         <div className="flex items-center space-x-3 ml-auto">
           {currentUser ? (
-            <div className="flex items-center gap-2.5 bg-gradient-to-r from-[#131722]/90 via-[#0e111a]/95 to-[#131722]/90 hover:from-[#181d2b] hover:to-[#181d2b] pl-1.5 pr-2 py-1 rounded-2xl border border-cyan-500/25 shadow-[0_4px_20px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-200 group">
+            <div className={`flex items-center gap-2.5 pl-1.5 pr-2 py-1 rounded-2xl border transition-all duration-200 group ${theme === 'light'
+              ? 'bg-white hover:bg-slate-50 border-slate-300 shadow-sm text-slate-800'
+              : 'bg-gradient-to-r from-[#131722]/90 via-[#0e111a]/95 to-[#131722]/90 hover:from-[#181d2b] hover:to-[#181d2b] border-cyan-500/25 shadow-[0_4px_20px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]'
+              }`}>
               {/* Mini User Avatar with Live Online Ping */}
               <div className="relative flex-shrink-0">
                 <div className="w-6 h-6 rounded-xl bg-gradient-to-tr from-cyan-600 via-teal-500 to-sky-400 p-[1px] shadow-sm">
-                  <div className="w-full h-full rounded-[11px] bg-[#070b12] flex items-center justify-center text-[11px] font-black text-cyan-300 uppercase font-sans">
+                  <div className={`w-full h-full rounded-[11px] flex items-center justify-center text-[11px] font-black uppercase font-sans ${theme === 'light' ? 'bg-cyan-50 text-cyan-700' : 'bg-[#070b12] text-cyan-300'
+                    }`}>
                     {currentUser.name ? currentUser.name.charAt(0) : 'U'}
                   </div>
                 </div>
                 <span className="absolute -bottom-0.5 -right-0.5 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 border border-black"></span>
+                  <span className={`relative inline-flex rounded-full h-2 w-2 bg-emerald-500 border ${theme === 'light' ? 'border-white' : 'border-black'}`}></span>
                 </span>
               </div>
 
               {/* User Name */}
               <div className="flex items-center gap-1.5 leading-none">
-                <span className="font-extrabold text-white text-xs tracking-tight group-hover:text-cyan-200 transition-colors">
+                <span className={`font-black text-xs tracking-tight transition-colors ${theme === 'light' ? 'text-slate-900 group-hover:text-cyan-700' : 'text-white group-hover:text-cyan-200'
+                  }`}>
                   {currentUser.name}
                 </span>
 
                 {/* Role Badge (Dynamic Color) */}
                 <span
                   className={`text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider border shadow-sm ${currentUser.role === 'admin'
-                    ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
+                    ? (theme === 'light' ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.2)]')
                     : currentUser.role === 'waiter'
-                      ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/40'
+                      ? (theme === 'light' ? 'bg-indigo-100 text-indigo-800 border-indigo-300' : 'bg-indigo-500/15 text-indigo-300 border-indigo-500/40')
                       : currentUser.role === 'chef'
-                        ? 'bg-orange-500/15 text-orange-300 border-orange-500/40'
-                        : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/35 shadow-[0_0_8px_rgba(6,182,212,0.2)]'
+                        ? (theme === 'light' ? 'bg-orange-100 text-orange-800 border-orange-300' : 'bg-orange-500/15 text-orange-300 border-orange-500/40')
+                        : (theme === 'light' ? 'bg-cyan-100 text-cyan-800 border-cyan-300' : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/35 shadow-[0_0_8px_rgba(6,182,212,0.2)]')
                     }`}
                 >
                   {currentUser.role || 'User'}
@@ -718,16 +790,19 @@ export default function App() {
               </div>
 
               {/* Divider Line */}
-              <div className="h-3.5 w-[1px] bg-white/10 mx-0.5"></div>
+              <div className={`h-3.5 w-[1px] mx-0.5 ${theme === 'light' ? 'bg-slate-300' : 'bg-white/10'}`}></div>
 
               {/* Logout Button */}
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex items-center gap-1 px-2 py-1 rounded-xl bg-rose-500/10 hover:bg-rose-500/25 active:scale-95 text-rose-300 hover:text-white border border-rose-500/30 text-[11px] font-bold transition-all cursor-pointer shadow-sm"
+                className={`flex items-center gap-1 px-2 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer shadow-sm active:scale-95 border ${theme === 'light'
+                  ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
+                  : 'bg-rose-500/10 hover:bg-rose-500/25 text-rose-300 hover:text-white border-rose-500/30'
+                  }`}
                 title={t.logout}
               >
-                <svg className="w-3 h-3 text-rose-400 group-hover:text-rose-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className={`w-3 h-3 ${theme === 'light' ? 'text-rose-600' : 'text-rose-400 group-hover:text-rose-300'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
                 <span>{t.logout}</span>
@@ -761,6 +836,8 @@ export default function App() {
           currentUser={currentUser}
           lang={lang}
           onLanguageChange={handleLanguageChange}
+          theme={theme}
+          onToggleTheme={toggleTheme}
           onOpenLogin={() => setShowAuthModal(true)}
           onOpenRegister={() => setShowAuthModal(true)}
           onLogout={handleLogout}
@@ -809,12 +886,16 @@ export default function App() {
                       setSidebarOpen(false);
                     }}
                     className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm transition-all duration-200 group ${isActive
-                      ? 'bg-gradient-to-r from-turquoise-500/20 via-turquoise-500/10 to-transparent border-l-4 border-turquoise-400 text-white font-bold shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_0_15px_rgba(6,182,212,0.15)]'
-                      : 'text-slate-400 hover:text-white hover:bg-white/[0.04] border-l-4 border-transparent font-medium'
+                      ? (theme === 'light'
+                        ? 'bg-turquoise-50 border-l-4 border-turquoise-500 text-slate-900 font-extrabold shadow-sm'
+                        : 'bg-gradient-to-r from-turquoise-500/20 via-turquoise-500/10 to-transparent border-l-4 border-turquoise-400 text-white font-bold shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_0_15px_rgba(6,182,212,0.15)]')
+                      : (theme === 'light'
+                        ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border-l-4 border-transparent font-medium'
+                        : 'text-slate-400 hover:text-white hover:bg-white/[0.04] border-l-4 border-transparent font-medium')
                       }`}
                   >
                     <div className="flex items-center space-x-3">
-                      <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? 'text-turquoise-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                      <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? (theme === 'light' ? 'text-turquoise-600' : 'text-turquoise-300') : (theme === 'light' ? 'text-slate-500 group-hover:text-slate-800' : 'text-slate-400 group-hover:text-slate-200')}`} />
                       <span>{item.label}</span>
                     </div>
                     {item.badge !== undefined && item.badge > 0 && (
@@ -828,34 +909,44 @@ export default function App() {
             </div>
 
             {/* Room Status Widget */}
-            <div className="p-4 mx-3 mb-4 rounded-2xl bg-gradient-to-b from-[#0e1117] to-[#08090d] border border-white/[0.08] text-xs space-y-3 shadow-xl">
-              <div className="flex items-center justify-between text-slate-400 font-semibold">
+            <div className={`p-4 mx-3 mb-4 rounded-2xl text-xs space-y-3 shadow-md border ${theme === 'light'
+              ? 'bg-slate-50 border-slate-200 text-slate-800'
+              : 'bg-gradient-to-b from-[#0e1117] to-[#08090d] border-white/[0.08] shadow-xl text-slate-100'
+              }`}>
+              <div className={`flex items-center justify-between font-semibold ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'
+                }`}>
                 <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-turquoise-400"></span>
-                  <span>{t.roomStatusWidgetTitle}</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-turquoise-500"></span>
+                  <span className={theme === 'light' ? 'text-slate-700 font-bold' : ''}>{t.roomStatusWidgetTitle}</span>
                 </span>
-                <span className="text-white font-bold">{metrics.totalRooms} {t.roomsCount}</span>
+                <span className={`font-black ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
+                  {metrics.totalRooms} {t.roomsCount}
+                </span>
               </div>
 
               {/* Segmented Progress Bar */}
-              <div className="h-2 w-full rounded-full bg-white/5 flex overflow-hidden p-0.5 gap-0.5">
+              <div className={`h-2 w-full rounded-full flex overflow-hidden p-0.5 gap-0.5 ${theme === 'light' ? 'bg-slate-200' : 'bg-white/5'
+                }`}>
                 <div style={{ width: `${(metrics.availableRooms / (metrics.totalRooms || 1)) * 100}%` }} className="h-full bg-emerald-500 rounded-full transition-all" title={t.statusAvailable}></div>
                 <div style={{ width: `${(metrics.occupiedRooms / (metrics.totalRooms || 1)) * 100}%` }} className="h-full bg-rose-500 rounded-full transition-all" title={t.statusOccupied}></div>
                 <div style={{ width: `${(metrics.reservedRooms / (metrics.totalRooms || 1)) * 100}%` }} className="h-full bg-amber-400 rounded-full transition-all" title={t.statusReserved}></div>
               </div>
 
               <div className="grid grid-cols-3 gap-1.5 pt-0.5 text-center">
-                <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                  <span className="block text-emerald-400 font-black text-sm">{metrics.availableRooms}</span>
-                  <span className="text-[10px] text-emerald-300 font-medium">{t.statusAvailable}</span>
+                <div className={`p-2 rounded-xl border ${theme === 'light' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-emerald-500/10 border-emerald-500/20'
+                  }`}>
+                  <span className={`block font-black text-sm ${theme === 'light' ? 'text-emerald-700' : 'text-emerald-400'}`}>{metrics.availableRooms}</span>
+                  <span className={`text-[10px] font-bold ${theme === 'light' ? 'text-emerald-600' : 'text-emerald-300'}`}>{t.statusAvailable}</span>
                 </div>
-                <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30">
-                  <span className="block text-rose-400 font-black text-sm">{metrics.occupiedRooms}</span>
-                  <span className="text-[10px] text-rose-300 font-bold">{t.statusOccupied}</span>
+                <div className={`p-2 rounded-xl border ${theme === 'light' ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-rose-500/10 border-rose-500/30'
+                  }`}>
+                  <span className={`block font-black text-sm ${theme === 'light' ? 'text-rose-700' : 'text-rose-400'}`}>{metrics.occupiedRooms}</span>
+                  <span className={`text-[10px] font-bold ${theme === 'light' ? 'text-rose-600' : 'text-rose-300'}`}>{t.statusOccupied}</span>
                 </div>
-                <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                  <span className="block text-amber-400 font-black text-sm">{metrics.reservedRooms}</span>
-                  <span className="text-[10px] text-amber-300 font-medium">{t.statusReserved}</span>
+                <div className={`p-2 rounded-xl border ${theme === 'light' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-amber-500/10 border-amber-500/20'
+                  }`}>
+                  <span className={`block font-black text-sm ${theme === 'light' ? 'text-amber-700' : 'text-amber-400'}`}>{metrics.reservedRooms}</span>
+                  <span className={`text-[10px] font-bold ${theme === 'light' ? 'text-amber-600' : 'text-amber-300'}`}>{t.statusReserved}</span>
                 </div>
               </div>
             </div>
@@ -894,10 +985,19 @@ export default function App() {
                   <span>{metrics.occupiedRooms} {t.roomsCount} {t.statusOccupied.toUpperCase()}</span>
                 </div>
 
+                {/* Theme Mode Toggle (Oq / Qora fon) */}
+                <button
+                  onClick={toggleTheme}
+                  title={theme === 'dark' ? (t.themeLight || "Oq fon") : (t.themeDark || "Qora fon")}
+                  className={`p-2.5 rounded-xl border transition-all cursor-pointer ${theme === 'light' ? 'bg-amber-500/15 border-amber-500/40 text-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.25)]' : 'bg-navy-900 border-white/10 text-slate-400 hover:text-white'}`}
+                >
+                  {theme === 'dark' ? <Icons.Sun className="w-4 h-4 text-amber-400" /> : <Icons.Moon className="w-4 h-4 text-cyan-400" />}
+                </button>
+
                 <button
                   onClick={() => setSoundEnabled(!soundEnabled)}
                   title={soundEnabled ? t.soundOff : t.soundOn}
-                  className={`p-2.5 rounded-xl border transition-all ${soundEnabled ? 'bg-turquoise-500/15 border-turquoise-500/40 text-turquoise-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]' : 'bg-navy-900 border-white/10 text-slate-500 hover:text-slate-300'}`}
+                  className={`p-2.5 rounded-xl border transition-all cursor-pointer ${soundEnabled ? 'bg-turquoise-500/15 border-turquoise-500/40 text-turquoise-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]' : 'bg-navy-900 border-white/10 text-slate-500 hover:text-slate-300'}`}
                 >
                   {soundEnabled ? <Icons.Volume2 className="w-4 h-4" /> : <Icons.VolumeX className="w-4 h-4" />}
                 </button>
@@ -913,7 +1013,7 @@ export default function App() {
             </header>
 
             {/* Content Body */}
-            <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-black">
+            <main className={`flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 ${theme === 'light' ? 'bg-slate-100' : 'bg-black'}`}>
 
               {/* TAB 1: DASHBOARD */}
               {activeTab === 'dashboard' && (
@@ -1048,22 +1148,23 @@ export default function App() {
                             <span>{t.liveRoomMonitor}</span>
                             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                           </h3>
-                          <p className="text-xs text-slate-400">
+                          <p className={`text-xs ${theme === 'light' ? 'text-slate-500 font-medium' : 'text-slate-400'}`}>
                             Stollar va VIP xonalarning real vaqtdagi bandlik ko'rsatkichi
                           </p>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-3 text-xs text-slate-400 bg-black/40 px-3 py-1.5 rounded-xl border border-white/5">
-                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400"></span> {metrics.availableRooms} {t.statusAvailable}</span>
-                          <span className="text-white/20">•</span>
-                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span> {metrics.occupiedRooms} {t.statusOccupied}</span>
-                          <span className="text-white/20">•</span>
-                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400"></span> {metrics.reservedRooms} {t.statusReserved}</span>
+                        <div className={`flex items-center gap-3 text-xs px-3 py-1.5 rounded-xl border ${theme === 'light' ? 'bg-slate-100 border-slate-300 text-slate-800 font-semibold' : 'bg-black/40 border-white/5 text-slate-400'
+                          }`}>
+                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> <span>{metrics.availableRooms} {t.statusAvailable}</span></span>
+                          <span className={theme === 'light' ? 'text-slate-400' : 'text-white/20'}>•</span>
+                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span> <span>{metrics.occupiedRooms} {t.statusOccupied}</span></span>
+                          <span className={theme === 'light' ? 'text-slate-400' : 'text-white/20'}>•</span>
+                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400"></span> <span>{metrics.reservedRooms} {t.statusReserved}</span></span>
                         </div>
 
-                        <button onClick={() => setActiveTab('rooms')} className="text-xs font-bold text-turquoise-400 hover:text-turquoise-300 transition-colors flex items-center gap-1 cursor-pointer">
+                        <button onClick={() => setActiveTab('rooms')} className="text-xs font-bold text-turquoise-500 hover:text-turquoise-400 transition-colors flex items-center gap-1 cursor-pointer">
                           <span>{t.viewAll}</span>
                         </button>
                       </div>
@@ -1080,17 +1181,24 @@ export default function App() {
                           <button
                             key={room.id}
                             onClick={() => handleOpenRoomDetails(room.id)}
-                            className={`group relative p-3.5 rounded-2xl border text-left transition-all duration-300 flex flex-col justify-between hover:scale-[1.03] hover:-translate-y-1 ${isOccupied
-                              ? 'bg-gradient-to-b from-rose-950/40 via-[#10080a] to-[#070507] border-rose-500/50 shadow-[0_4px_20px_-2px_rgba(239,68,68,0.25)] hover:border-rose-400'
-                              : isReserved
-                                ? 'bg-gradient-to-b from-amber-950/30 via-[#100c07] to-[#070605] border-amber-500/40 hover:border-amber-400'
-                                : 'bg-gradient-to-b from-emerald-950/20 via-[#080d0b] to-[#050806] border-emerald-500/30 hover:border-emerald-400/80 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                            className={`group relative p-3.5 rounded-2xl border text-left transition-all duration-300 flex flex-col justify-between hover:scale-[1.03] hover:-translate-y-1 ${theme === 'light'
+                                ? (isOccupied
+                                  ? 'bg-rose-50/90 border-rose-300 shadow-sm shadow-rose-100 hover:border-rose-400'
+                                  : isReserved
+                                    ? 'bg-amber-50/90 border-amber-300 shadow-sm shadow-amber-100 hover:border-amber-400'
+                                    : 'bg-emerald-50/90 border-emerald-300 shadow-sm shadow-emerald-100 hover:border-emerald-400')
+                                : (isOccupied
+                                  ? 'bg-gradient-to-b from-rose-950/40 via-[#10080a] to-[#070507] border-rose-500/50 shadow-[0_4px_20px_-2px_rgba(239,68,68,0.25)] hover:border-rose-400'
+                                  : isReserved
+                                    ? 'bg-gradient-to-b from-amber-950/30 via-[#100c07] to-[#070605] border-amber-500/40 hover:border-amber-400'
+                                    : 'bg-gradient-to-b from-emerald-950/20 via-[#080d0b] to-[#050806] border-emerald-500/30 hover:border-emerald-400/80 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]')
                               }`}
                           >
                             {/* Header: Room Number Pill + Beacon */}
                             <div>
                               <div className="flex justify-between items-center mb-2">
-                                <span className="px-2 py-0.5 rounded-lg bg-white/5 border border-white/10 text-[11px] font-mono font-black text-slate-200">
+                                <span className={`px-2 py-0.5 rounded-lg border text-[11px] font-mono font-black ${theme === 'light' ? 'bg-white border-slate-300 text-slate-800 shadow-xs' : 'bg-white/5 border-white/10 text-slate-200'
+                                  }`}>
                                   №{room.number}
                                 </span>
                                 <div className="flex items-center gap-1">
@@ -1106,84 +1214,91 @@ export default function App() {
                               </div>
 
                               {/* Room Name */}
-                              <p className="text-xs font-extrabold text-white group-hover:text-turquoise-300 transition-colors truncate">
+                              <p className={`text-xs font-black truncate transition-colors ${theme === 'light' ? 'text-slate-900 group-hover:text-cyan-700' : 'text-white group-hover:text-turquoise-300'
+                                }`}>
                                 {room.name}
                               </p>
-                              <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                              <p className={`text-[10px] truncate mt-0.5 font-medium ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'
+                                }`}>
                                 {room.type} • {room.seats} kishi
                               </p>
                             </div>
 
                             {/* Status Badge Bottom */}
-                            <div className="mt-3 pt-2 border-t border-white/5">
+                            <div className={`mt-3 pt-2 border-t ${theme === 'light' ? 'border-slate-200/90' : 'border-white/5'}`}>
                               {isOccupied ? (
                                 <div className="space-y-1">
-                                  <div className="px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-500/40 text-rose-300 font-black text-[9px] tracking-wider uppercase flex items-center justify-between">
+                                  <div className={`px-2 py-0.5 rounded-md font-black text-[9px] tracking-wider uppercase flex items-center justify-between border ${theme === 'light' ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-rose-500/20 border-rose-500/40 text-rose-300'
+                                    }`}>
                                     <span>ZANIT</span>
-                                    <span className="font-mono text-slate-200">{room.customer?.checkInTime || '13:00'}</span>
+                                    <span className={`font-mono ${theme === 'light' ? 'text-rose-900' : 'text-slate-200'}`}>{room.customer?.checkInTime || '13:00'}</span>
                                   </div>
-          
+
                                   {roomTotal > 0 && (
-                                    <p className="text-[10px] font-mono font-bold text-amber-400 text-right truncate">
+                                    <p className={`text-[10px] font-mono font-bold text-right truncate ${theme === 'light' ? 'text-amber-700' : 'text-amber-400'}`}>
                                       {formatUZS(roomTotal)}
                                     </p>
                                   )}
                                 </div>
-   
-        
+
                               ) : isReserved ? (
-                                <div className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-[9px] tracking-wider uppercase flex items-center justify-between">
+                                <div className={`px-2 py-0.5 rounded-md font-bold text-[9px] tracking-wider uppercase flex items-center justify-between border ${theme === 'light' ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                                  }`}>
                                   <span>BAND</span>
-                                  <span className="font-mono">{room.reservation?.time || '19:00'}</span>
+                                  <span className={`font-mono ${theme === 'light' ? 'text-amber-900' : ''}`}>{room.reservation?.time || '19:00'}</span>
                                 </div>
-        
+
                               ) : (
-                                <div className="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold text-[9px] tracking-wider uppercase flex items-center justify-between">
+                                <div className={`px-2 py-0.5 rounded-md font-bold text-[9px] tracking-wider uppercase flex items-center justify-between border ${theme === 'light' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                                  }`}>
                                   <span>BO'SH</span>
-                                  <span className="text-[8px] text-emerald-300/60 font-semibold">Tayyor</span>
+                                  <span className={`text-[8px] font-medium ${theme === 'light' ? 'text-emerald-700' : 'text-emerald-300/60'}`}>Tayyor</span>
                                 </div>
-        
+
                               )}
-    
+
                             </div>
                           </button>
                         );
                       })}
-  
+
                     </div>
                   </div>
 
                   {/* Active Orders & Fast Actions */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Active Tables Overview */}
-                    <div className="rounded-2xl p-6 bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border border-white/[0.08] space-y-4 shadow-2xl relative">
-                      <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                    <div className={`rounded-2xl p-6 space-y-4 relative border ${theme === 'light'
+                        ? 'bg-white border-slate-200 shadow-md'
+                        : 'bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border-white/[0.08] shadow-2xl'
+                      }`}>
+                      <div className={`flex items-center justify-between pb-3 border-b ${theme === 'light' ? 'border-slate-200' : 'border-white/[0.06]'}`}>
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
                             <Icons.Receipt className="w-5 h-5" />
                           </div>
                           <div>
-                            <h3 className="font-black text-white text-sm tracking-tight">
+                            <h3 className={`font-black text-sm tracking-tight ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
                               {t.occupiedRoomsLiveBills}
                             </h3>
-                            <p className="text-[11px] text-slate-400">
+                            <p className={`text-[11px] ${theme === 'light' ? 'text-slate-500 font-medium' : 'text-slate-400'}`}>
                               Hozirda {rooms.filter(r => r.status === 'OCCUPIED').length} {t.roomsCount} {t.statusOccupied.toLowerCase()}
                             </p>
                           </div>
                         </div>
 
-                        <button onClick={() => setActiveTab('bills')} className="text-xs font-bold text-turquoise-400 hover:text-turquoise-300 cursor-pointer">
+                        <button onClick={() => setActiveTab('bills')} className="text-xs font-bold text-turquoise-500 hover:text-turquoise-400 cursor-pointer">
                           {t.viewAll}
                         </button>
                       </div>
 
                       {rooms.filter(r => r.status === 'OCCUPIED').length === 0 ? (
                         <div className="text-center py-8 text-slate-400 text-xs space-y-2">
-                          <div className="w-12 h-12 rounded-full bg-white/5 mx-auto flex items-center justify-center text-slate-500">
+                          <div className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center ${theme === 'light' ? 'bg-slate-100 text-slate-400' : 'bg-white/5 text-slate-500'}`}>
                             <Icons.Receipt className="w-6 h-6" />
                           </div>
-                          <p className="font-medium">Hozirda barcha xonalar bo'sh.</p>
-                          <p className="text-[11px] text-slate-500">Mehmon kelganda xonani ochishingiz mumkin.</p>
+                          <p className={`font-semibold ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>Hozirda barcha xonalar bo'sh.</p>
+                          <p className="text-[11px] text-slate-400">Mehmon kelganda xonani ochishingiz mumkin.</p>
                         </div>
                       ) : (
                         <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
@@ -1194,131 +1309,136 @@ export default function App() {
                             return (
                               <div
                                 key={room.id}
-                                className="p-3.5 rounded-2xl bg-[#0e111a]/80 border border-white/[0.07] hover:border-turquoise-500/40 flex items-center justify-between gap-3 transition-all duration-200 group"
+                                className={`p-3.5 rounded-2xl flex items-center justify-between gap-3 transition-all duration-200 group border ${theme === 'light'
+                                    ? 'bg-slate-50/90 hover:bg-slate-100 border-slate-200 hover:border-turquoise-400 shadow-xs'
+                                    : 'bg-[#0e111a]/80 border-white/[0.07] hover:border-turquoise-500/40'
+                                  }`}
                               >
                                 <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-950 to-navy-950 border border-rose-500/40 flex flex-col items-center justify-center text-white font-mono font-black text-xs shadow-md">
+                                  <div className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center font-mono font-black text-xs shadow-md border ${theme === 'light'
+                                      ? 'bg-rose-50 border-rose-200 text-rose-700'
+                                      : 'bg-gradient-to-br from-rose-950 to-navy-950 border-rose-500/40 text-white'
+                                    }`}>
                                     <span>№{room.number}</span>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping"></span>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
                                   </div>
                                   <div>
-                                    <span className="font-extrabold text-white text-xs sm:text-sm group-hover:text-turquoise-300 transition-colors">
+                                    <span className={`font-black text-xs sm:text-sm transition-colors ${theme === 'light' ? 'text-slate-900 group-hover:text-turquoise-700' : 'text-white group-hover:text-turquoise-300'
+                                      }`}>
                                       {room.name}
                                     </span>
-                                    <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                                    <div className={`flex items-center gap-2 text-[11px] mt-0.5 ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'
+                                      }`}>
                                       <span>👤 {room.customer?.name || 'Hurmatli Mehmon'}</span>
                                       <span>•</span>
                                       <span>⏱️ {room.customer?.checkInTime || '13:00'}</span>
                                       {ordersCount > 0 && (
                                         <>
                                           <span>•</span>
-                                          <span className="text-turquoise-400 font-semibold">{ordersCount} ta taom</span>
+                                          <span className={`font-bold ${theme === 'light' ? 'text-turquoise-700' : 'text-turquoise-400'}`}>{ordersCount} ta taom</span>
                                         </>
                                       )}
                                     </div>
                                   </div>
                                 </div>
-       
-            
-          
-        
 
                                 <div className="text-right flex items-center gap-3">
                                   <div>
-                                    <span className="block font-mono font-black text-sm sm:text-base text-amber-400 tracking-tight">
+                                    <span className={`block font-mono font-black text-sm sm:text-base tracking-tight ${theme === 'light' ? 'text-amber-600' : 'text-amber-400'
+                                      }`}>
                                       {formatUZS(rTotal)}
                                     </span>
                                     <span className="text-[10px] text-slate-500 block">Jami hisob</span>
                                   </div>
-          
+
                                   <button
                                     onClick={() => handleOpenRoomDetails(room.id)}
-                                    className="px-3 py-1.5 rounded-xl bg-turquoise-500/10 hover:bg-turquoise-500/20 text-turquoise-300 font-bold text-xs border border-turquoise-500/30 transition-all flex items-center gap-1"
+                                    className={`px-3 py-1.5 rounded-xl font-bold text-xs border transition-all flex items-center gap-1 cursor-pointer ${theme === 'light'
+                                        ? 'bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border-cyan-300'
+                                        : 'bg-turquoise-500/10 hover:bg-turquoise-500/20 text-turquoise-300 border-turquoise-500/30'
+                                      }`}
                                   >
                                     <span>Hisob</span>
                                     <span>&rarr;</span>
                                   </button>
                                 </div>
                               </div>
-        
-      
                             );
                           })}
                         </div>
-      
-
                       )}
                     </div>
 
                     {/* Quick Kitchen Alert */}
-                    <div className="rounded-2xl p-6 bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border border-white/[0.08] space-y-4 shadow-2xl relative">
-                      <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                    <div className={`rounded-2xl p-6 space-y-4 relative border ${theme === 'light'
+                        ? 'bg-white border-slate-200 shadow-md'
+                        : 'bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border-white/[0.08] shadow-2xl'
+                      }`}>
+                      <div className={`flex items-center justify-between pb-3 border-b ${theme === 'light' ? 'border-slate-200' : 'border-white/[0.06]'}`}>
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
                             <Icons.ChefHat className="w-5 h-5" />
                           </div>
                           <div>
-                            <h3 className="font-black text-white text-sm tracking-tight">
+                            <h3 className={`font-black text-sm tracking-tight ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
                               Oshxonadagi Yangi Buyurtmalar
                             </h3>
-                            <p className="text-[11px] text-slate-400">
+                            <p className={`text-[11px] ${theme === 'light' ? 'text-slate-500 font-medium' : 'text-slate-400'}`}>
                               {allKitchenOrders.filter(o => o.status === 'pending').length} ta taom tayyorlashga kutilmoqda
                             </p>
                           </div>
                         </div>
 
-                        <button onClick={() => setActiveTab('orders')} className="text-xs font-bold text-turquoise-400 hover:text-turquoise-300">
+                        <button onClick={() => setActiveTab('orders')} className="text-xs font-bold text-turquoise-500 hover:text-turquoise-400">
                           Oshxonaga o'tish &rarr;
                         </button>
                       </div>
 
                       {allKitchenOrders.filter(o => o.status === 'pending').length === 0 ? (
                         <div className="text-center py-8 text-slate-400 text-xs space-y-2">
-                          <div className="w-12 h-12 rounded-full bg-white/5 mx-auto flex items-center justify-center text-slate-500">
+                          <div className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center ${theme === 'light' ? 'bg-slate-100 text-slate-400' : 'bg-white/5 text-slate-500'}`}>
                             <Icons.ChefHat className="w-6 h-6" />
                           </div>
-                          <p className="font-medium">Kutilayotgan yangi buyurtmalar yo'q.</p>
-                          <p className="text-[11px] text-slate-500">Oshxona barcha buyurtmalarni tayyorlab bo'lgan.</p>
+                          <p className={`font-semibold ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>Kutilayotgan yangi buyurtmalar yo'q.</p>
+                          <p className="text-[11px] text-slate-400">Oshxona barcha buyurtmalarni tayyorlab bo'lgan.</p>
                         </div>
                       ) : (
                         <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
                           {allKitchenOrders.filter(o => o.status === 'pending').slice(0, 5).map(ord => (
                             <div
                               key={ord.id}
-                              className="p-3.5 rounded-2xl bg-[#0e111a]/80 border border-white/[0.07] hover:border-cyan-500/40 flex items-center justify-between gap-3 transition-all duration-200"
+                              className={`p-3.5 rounded-2xl flex items-center justify-between gap-3 transition-all duration-200 border ${theme === 'light'
+                                  ? 'bg-slate-50/90 border-slate-200 hover:border-cyan-400 shadow-xs'
+                                  : 'bg-[#0e111a]/80 border-white/[0.07] hover:border-cyan-500/40'
+                                }`}
                             >
                               <div className="flex items-center gap-3">
-                                <div className="px-2.5 py-1.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-mono font-bold text-xs">
+                                <div className="px-2.5 py-1.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-600 font-mono font-bold text-xs">
                                   №{ord.roomNumber}
                                 </div>
-        
+
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <span className="font-extrabold text-white text-xs sm:text-sm">
+                                    <span className={`font-black text-xs sm:text-sm ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
                                       {ord.name}
                                     </span>
-                                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-black border border-amber-500/30">
-                                      {ord.quantity}x
+                                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 text-[10px] font-black border border-amber-500/30">
+                                      x{ord.quantity}
                                     </span>
                                   </div>
-          
-                                  <p className="text-[11px] text-slate-400 mt-0.5">
-                                    ⏱️ {ord.time} da buyurtma berilgan {ord.notes ? `• Izoh: ${ord.notes}` : ''}
+                                  <p className="text-[11px] text-slate-500 mt-0.5">
+                                    ⏰ {ord.time} {ord.notes && `• 📝 ${ord.notes}`}
                                   </p>
                                 </div>
                               </div>
-        
-      
 
                               <button
-                                onClick={() => handleUpdateOrderStatus(ord.roomId, ord.id, 'preparing')}
-                                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-ocean-500 hover:from-cyan-400 hover:to-ocean-400 text-navy-950 font-black text-xs shadow-glow-cyan flex items-center gap-1.5 transition-all transform hover:scale-105 whitespace-nowrap"
+                                onClick={() => handleUpdateOrderStatus(ord.roomId, ord.id, 'cooking')}
+                                className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 font-black text-xs shadow-md transition-all cursor-pointer"
                               >
-                                <span>Tayyorlash</span>
-                                <span>&rarr;</span>
+                                {t.cookDish}
                               </button>
                             </div>
-    
                           ))}
                         </div>
                       )}
@@ -1444,12 +1564,12 @@ export default function App() {
                               )}
                               {isAvailable && (
                                 <button onClick={() => handleOpenCheckIn(room)} className="flex-1 py-2 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 text-xs font-bold cursor-pointer">
-                                  {t.statusOccupied}
+                                  {t.occupyRoomBtn || "Занять"}
                                 </button>
                               )}
                               {isReserved && (
                                 <button onClick={() => handleOpenCheckIn(room)} className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 text-xs font-bold cursor-pointer">
-                                  {t.statusOccupied}
+                                  {t.occupyRoomBtn || "Занять"}
                                 </button>
                               )}
                             </div>
@@ -1464,885 +1584,908 @@ export default function App() {
 
               {/* TAB 3: ROOM DETAILS & ACTIVE BILL */}
               {activeTab === 'room-detail' && selectedRoom && (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between pb-3 border-b border-white/10">
-        <button onClick={() => setActiveTab('rooms')} className="px-3.5 py-2 rounded-xl bg-navy-850 text-slate-300 text-xs font-semibold flex items-center gap-1.5 hover:text-white">
-          <Icons.ArrowLeft className="w-4 h-4" />
-          <span>Xonalar ro'yxatiga qaytish</span>
-        </button>
-        {selectedRoom.status === 'OCCUPIED' && (
-          <button
-            onClick={() => setTransferModal({ isOpen: true, sourceRoomId: selectedRoom.id })}
-            className="px-3 py-1.5 rounded-lg bg-navy-800 text-turquoise-300 border border-turquoise-500/30 text-xs font-bold hover:bg-navy-750"
-          >
-            ⇄ Xonani Boshqasiga Ko'chirish
-          </button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Room Details */}
-        <div className="lg:col-span-5 glass-card rounded-2xl p-6 border border-white/10 space-y-4">
-          <div className="relative h-56 rounded-2xl overflow-hidden">
-            <img src={selectedRoom.photo} alt={selectedRoom.name} className="w-full h-full object-cover" />
-            <div className="absolute top-3 right-3">
-              {selectedRoom.status === 'OCCUPIED' ? <span className="px-3 py-1.5 rounded-lg bg-red-600 text-white font-black text-xs animate-pulse">ZANIT</span> :
-                selectedRoom.status === 'RESERVED' ? <span className="px-3 py-1.5 rounded-lg bg-amber-500 text-navy-950 font-black text-xs">BAND</span> :
-                  <span className="px-3 py-1.5 rounded-lg bg-emerald-500 text-navy-950 font-black text-xs">BO'SH</span>}
-            </div>
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-bold text-white">№{selectedRoom.number} – {selectedRoom.name}</h2>
-            <p className="text-xs text-turquoise-400 font-semibold">{selectedRoom.subtitle} ({selectedRoom.capacityText})</p>
-            <p className="text-xs text-slate-300 mt-2 leading-relaxed">{selectedRoom.description}</p>
-          </div>
-
-          {/* Customer Info */}
-          {selectedRoom.customer ? (
-            <div className="p-3.5 rounded-xl bg-navy-900 border border-white/10 space-y-1.5 text-xs">
-              <p className="font-bold text-white">Mehmon Ma'lumotlari:</p>
-              <p className="text-slate-300">Ismi: <strong>{selectedRoom.customer.name}</strong></p>
-              <p className="text-slate-300">Telefon: {selectedRoom.customer.phone}</p>
-              <p className="text-slate-300">Mehmonlar soni: {selectedRoom.customer.guests} kishi</p>
-              <p className="text-slate-300">Biriktirilgan Ofitsiant: {selectedRoom.customer.waiter}</p>
-            </div>
-          ) : (
-            <div className="p-3.5 rounded-xl bg-navy-900/60 border border-white/5 text-xs text-slate-400 text-center">
-              Bu xona hozir bo'sh. Mehmon kelganda "Xonani Ochish" tugmasini bosing.
-            </div>
-          )}
-
-          {/* Status Buttons */}
-          <div className="pt-2 flex gap-2">
-            <button onClick={() => handleUpdateRoomStatus(selectedRoom.id, 'AVAILABLE')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${selectedRoom.status === 'AVAILABLE' ? 'bg-emerald-500 text-navy-950' : 'bg-navy-850 text-emerald-400'}`}>BO'SH</button>
-            <button onClick={() => handleUpdateRoomStatus(selectedRoom.id, 'OCCUPIED')} className={`flex-1 py-2 rounded-xl text-xs font-black ${selectedRoom.status === 'OCCUPIED' ? 'bg-red-600 text-white' : 'bg-navy-850 text-red-400'}`}>ZANIT</button>
-            <button onClick={() => handleUpdateRoomStatus(selectedRoom.id, 'RESERVED')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${selectedRoom.status === 'RESERVED' ? 'bg-amber-500 text-navy-950' : 'bg-navy-850 text-amber-400'}`}>BAND</button>
-          </div>
-        </div>
-
-        {/* Right: Ordered Food & Live Bill */}
-        <div className="lg:col-span-7 glass-card rounded-2xl p-6 border border-white/10 space-y-4 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-white/10">
-              <h3 className="font-bold text-white text-base">Xonaning Buyurtmalari va Hisobi</h3>
-              <button
-                onClick={() => setActiveTab('menu')}
-                className="px-3 py-1.5 rounded-lg bg-turquoise-500 text-navy-950 font-bold text-xs shadow-glow-cyan"
-              >
-                + Taom Qo'shish
-              </button>
-            </div>
-
-            {/* Orders List */}
-            {(roomOrders[selectedRoom.id] || []).length === 0 ? (
-              <div className="text-center py-12 text-slate-400 text-xs">
-                <Icons.Utensils className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <span>Bu xonaga hali taom buyurtma qilinmagan. Yuqoridagi "+ Taom Qo'shish" tugmasini bosing.</span>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                {(roomOrders[selectedRoom.id] || []).map(item => (
-                  <div key={item.id} className="p-3 rounded-xl bg-navy-900 border border-white/5 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="font-bold text-white">{item.name}</span>
-                      <p className="text-[11px] text-slate-400">{formatUZS(item.price)} x {item.quantity} = <strong className="text-turquoise-300 font-mono">{formatUZS(item.price * item.quantity)}</strong></p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center bg-navy-950 rounded-lg border border-white/10">
-                        <button onClick={() => handleUpdateOrderItemQty(selectedRoom.id, item.id, -1)} className="px-2 py-1 text-slate-300 hover:text-white font-bold">-</button>
-                        <span className="px-2 font-mono font-bold text-white">{item.quantity}</span>
-                        <button onClick={() => handleUpdateOrderItemQty(selectedRoom.id, item.id, 1)} className="px-2 py-1 text-slate-300 hover:text-white font-bold">+</button>
-                      </div>
-                      <button onClick={() => handleRemoveOrderItem(selectedRoom.id, item.id)} className="text-slate-500 hover:text-rose-400 p-1">
-                        <Icons.Trash2 className="w-4 h-4" />
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                    <button onClick={() => setActiveTab('rooms')} className="px-3.5 py-2 rounded-xl bg-navy-850 text-slate-300 text-xs font-semibold flex items-center gap-1.5 hover:text-white">
+                      <Icons.ArrowLeft className="w-4 h-4" />
+                      <span>Xonalar ro'yxatiga qaytish</span>
+                    </button>
+                    {selectedRoom.status === 'OCCUPIED' && (
+                      <button
+                        onClick={() => setTransferModal({ isOpen: true, sourceRoomId: selectedRoom.id })}
+                        className="px-3 py-1.5 rounded-lg bg-navy-800 text-turquoise-300 border border-turquoise-500/30 text-xs font-bold hover:bg-navy-750"
+                      >
+                        ⇄ Xonani Boshqasiga Ko'chirish
                       </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* Left: Room Details */}
+                    <div className="lg:col-span-5 glass-card rounded-2xl p-6 border border-white/10 space-y-4">
+                      <div className="relative h-56 rounded-2xl overflow-hidden">
+                        <img src={selectedRoom.photo} alt={selectedRoom.name} className="w-full h-full object-cover" />
+                        <div className="absolute top-3 right-3">
+                          {selectedRoom.status === 'OCCUPIED' ? <span className="px-3 py-1.5 rounded-lg bg-red-600 text-white font-black text-xs animate-pulse">ZANIT</span> :
+                            selectedRoom.status === 'RESERVED' ? <span className="px-3 py-1.5 rounded-lg bg-amber-500 text-navy-950 font-black text-xs">BAND</span> :
+                              <span className="px-3 py-1.5 rounded-lg bg-emerald-500 text-navy-950 font-black text-xs">BO'SH</span>}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h2 className="text-2xl font-bold text-white">№{selectedRoom.number} – {selectedRoom.name}</h2>
+                        <p className="text-xs text-turquoise-400 font-semibold">{selectedRoom.subtitle} ({selectedRoom.capacityText})</p>
+                        <p className="text-xs text-slate-300 mt-2 leading-relaxed">{selectedRoom.description}</p>
+                      </div>
+
+                      {/* Customer Info */}
+                      {selectedRoom.customer ? (
+                        <div className="p-3.5 rounded-xl bg-navy-900 border border-white/10 space-y-1.5 text-xs">
+                          <p className="font-bold text-white">Mehmon Ma'lumotlari:</p>
+                          <p className="text-slate-300">Ismi: <strong>{selectedRoom.customer.name}</strong></p>
+                          <p className="text-slate-300">Telefon: {selectedRoom.customer.phone}</p>
+                          <p className="text-slate-300">Mehmonlar soni: {selectedRoom.customer.guests} kishi</p>
+                          <p className="text-slate-300">Biriktirilgan Ofitsiant: {selectedRoom.customer.waiter}</p>
+                        </div>
+                      ) : (
+                        <div className="p-3.5 rounded-xl bg-navy-900/60 border border-white/5 text-xs text-slate-400 text-center space-y-2">
+                          <p>Bu xona hozir bo'sh.</p>
+                          <button
+                            onClick={() => handleOpenCheckIn(selectedRoom)}
+                            className="w-full py-2 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 font-bold text-xs cursor-pointer shadow-glow-cyan"
+                          >
+                            {t.occupyRoomBtn || "Занять"}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Status Buttons */}
+                      <div className="pt-2 flex gap-2">
+                        <button onClick={() => handleUpdateRoomStatus(selectedRoom.id, 'AVAILABLE')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${selectedRoom.status === 'AVAILABLE' ? 'bg-emerald-500 text-navy-950' : 'bg-navy-850 text-emerald-400'}`}>BO'SH</button>
+                        <button onClick={() => handleUpdateRoomStatus(selectedRoom.id, 'OCCUPIED')} className={`flex-1 py-2 rounded-xl text-xs font-black ${selectedRoom.status === 'OCCUPIED' ? 'bg-red-600 text-white' : 'bg-navy-850 text-red-400'}`}>ZANIT</button>
+                        <button onClick={() => handleUpdateRoomStatus(selectedRoom.id, 'RESERVED')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${selectedRoom.status === 'RESERVED' ? 'bg-amber-500 text-navy-950' : 'bg-navy-850 text-amber-400'}`}>BAND</button>
+                      </div>
+                    </div>
+
+                    {/* Right: Ordered Food & Live Bill */}
+                    <div className="lg:col-span-7 glass-card rounded-2xl p-6 border border-white/10 space-y-4 flex flex-col justify-between">
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center pb-2 border-b border-white/10">
+                          <h3 className="font-bold text-white text-base">Xonaning Buyurtmalari va Hisobi</h3>
+                          <button
+                            onClick={() => setActiveTab('menu')}
+                            className="px-3 py-1.5 rounded-lg bg-turquoise-500 text-navy-950 font-bold text-xs shadow-glow-cyan"
+                          >
+                            + Taom Qo'shish
+                          </button>
+                        </div>
+
+                        {/* Orders List */}
+                        {(roomOrders[selectedRoom.id] || []).length === 0 ? (
+                          <div className="text-center py-12 text-slate-400 text-xs">
+                            <Icons.Utensils className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <span>Bu xonaga hali taom buyurtma qilinmagan. Yuqoridagi "+ Taom Qo'shish" tugmasini bosing.</span>
+                          </div>
+                        ) : (
+                          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                            {(roomOrders[selectedRoom.id] || []).map(item => (
+                              <div key={item.id} className="p-3 rounded-xl bg-navy-900 border border-white/5 flex items-center justify-between text-xs">
+                                <div>
+                                  <span className="font-bold text-white">{item.name}</span>
+                                  <p className="text-[11px] text-slate-400">{formatUZS(item.price)} x {item.quantity} = <strong className="text-turquoise-300 font-mono">{formatUZS(item.price * item.quantity)}</strong></p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center bg-navy-950 rounded-lg border border-white/10">
+                                    <button onClick={() => handleUpdateOrderItemQty(selectedRoom.id, item.id, -1)} className="px-2 py-1 text-slate-300 hover:text-white font-bold">-</button>
+                                    <span className="px-2 font-mono font-bold text-white">{item.quantity}</span>
+                                    <button onClick={() => handleUpdateOrderItemQty(selectedRoom.id, item.id, 1)} className="px-2 py-1 text-slate-300 hover:text-white font-bold">+</button>
+                                  </div>
+                                  <button onClick={() => handleRemoveOrderItem(selectedRoom.id, item.id)} className="text-slate-500 hover:text-rose-400 p-1">
+                                    <Icons.Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Bill Calculation Box */}
+                      <div className="p-4 rounded-xl bg-navy-900 border border-turquoise-500/30 space-y-3 text-xs mt-4">
+                        <div className="flex justify-between text-slate-300">
+                          <span>Taomlar summasi (Subtotal):</span>
+                          <span className="font-mono font-bold text-white">{formatUZS(calcRoomSubtotal(selectedRoom.id))}</span>
+                        </div>
+
+                        {calcRoomDiscount(selectedRoom.id) > 0 && (
+                          <div className="flex justify-between text-emerald-400">
+                            <span>Maxsus Chegirma ({appliedDiscounts[selectedRoom.id]}%):</span>
+                            <span className="font-mono">-{formatUZS(calcRoomDiscount(selectedRoom.id))}</span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between text-slate-300">
+                          <span>Xizmat haqi ({settings.serviceChargePercent}%):</span>
+                          <span className="font-mono">+{formatUZS(calcRoomService(selectedRoom.id))}</span>
+                        </div>
+
+                        {/* Promo Code Input */}
+                        <div className="pt-2 border-t border-white/10 flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Promokod (BALIQ10, VIP20)..."
+                            value={promoInput[selectedRoom.id] || ''}
+                            onChange={(e) => setPromoInput({ ...promoInput, [selectedRoom.id]: e.target.value })}
+                            className="flex-1 px-3 py-1.5 rounded-lg bg-navy-950 border border-white/10 text-white text-xs uppercase"
+                          />
+                          <button
+                            onClick={() => handleApplyPromo(selectedRoom.id, promoInput[selectedRoom.id])}
+                            className="px-3 py-1.5 rounded-lg bg-navy-800 hover:bg-navy-750 text-turquoise-300 font-bold text-xs"
+                          >
+                            Qo'llash
+                          </button>
+                        </div>
+
+                        <div className="pt-2 border-t border-white/10 flex justify-between items-baseline">
+                          <span className="font-bold text-white text-sm">UMUMIY HISOB (TOTAL):</span>
+                          <span className="font-mono font-black text-turquoise-300 text-xl">{formatUZS(calcRoomTotal(selectedRoom.id))}</span>
+                        </div>
+
+                        {/* Split Bill */}
+                        {selectedRoom.customer?.guests > 1 && (
+                          <div className="p-2 rounded-lg bg-navy-950/70 text-[11px] flex justify-between text-slate-300">
+                            <span>Kishi boshiga ({selectedRoom.customer.guests} kishi):</span>
+                            <span className="font-mono font-bold text-amber-300">
+                              {formatUZS(Math.round(calcRoomTotal(selectedRoom.id) / selectedRoom.customer.guests))}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Bill Actions */}
+                        <div className="pt-2 flex gap-2">
+                          <button
+                            onClick={() => handlePrintCurrentRoomBill(selectedRoom)}
+                            className="flex-1 py-2.5 rounded-xl bg-navy-800 hover:bg-navy-750 text-white font-bold text-xs flex items-center justify-center gap-1.5 border border-white/10"
+                          >
+                            <Icons.Printer className="w-4 h-4 text-turquoise-400" />
+                            <span>Chekni Chop Etish</span>
+                          </button>
+                          <button
+                            onClick={() => handleOpenPayment(selectedRoom)}
+                            className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-950"
+                          >
+                            To'lovni Qabul Qilish & Bo'shatish
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Bill Calculation Box */}
-          <div className="p-4 rounded-xl bg-navy-900 border border-turquoise-500/30 space-y-3 text-xs mt-4">
-            <div className="flex justify-between text-slate-300">
-              <span>Taomlar summasi (Subtotal):</span>
-              <span className="font-mono font-bold text-white">{formatUZS(calcRoomSubtotal(selectedRoom.id))}</span>
-            </div>
-
-            {calcRoomDiscount(selectedRoom.id) > 0 && (
-              <div className="flex justify-between text-emerald-400">
-                <span>Maxsus Chegirma ({appliedDiscounts[selectedRoom.id]}%):</span>
-                <span className="font-mono">-{formatUZS(calcRoomDiscount(selectedRoom.id))}</span>
-              </div>
-            )}
-
-            <div className="flex justify-between text-slate-300">
-              <span>Xizmat haqi ({settings.serviceChargePercent}%):</span>
-              <span className="font-mono">+{formatUZS(calcRoomService(selectedRoom.id))}</span>
-            </div>
-
-            {/* Promo Code Input */}
-            <div className="pt-2 border-t border-white/10 flex gap-2">
-              <input
-                type="text"
-                placeholder="Promokod (BALIQ10, VIP20)..."
-                value={promoInput[selectedRoom.id] || ''}
-                onChange={(e) => setPromoInput({ ...promoInput, [selectedRoom.id]: e.target.value })}
-                className="flex-1 px-3 py-1.5 rounded-lg bg-navy-950 border border-white/10 text-white text-xs uppercase"
-              />
-              <button
-                onClick={() => handleApplyPromo(selectedRoom.id, promoInput[selectedRoom.id])}
-                className="px-3 py-1.5 rounded-lg bg-navy-800 hover:bg-navy-750 text-turquoise-300 font-bold text-xs"
-              >
-                Qo'llash
-              </button>
-            </div>
-
-            <div className="pt-2 border-t border-white/10 flex justify-between items-baseline">
-              <span className="font-bold text-white text-sm">UMUMIY HISOB (TOTAL):</span>
-              <span className="font-mono font-black text-turquoise-300 text-xl">{formatUZS(calcRoomTotal(selectedRoom.id))}</span>
-            </div>
-
-            {/* Split Bill */}
-            {selectedRoom.customer?.guests > 1 && (
-              <div className="p-2 rounded-lg bg-navy-950/70 text-[11px] flex justify-between text-slate-300">
-                <span>Kishi boshiga ({selectedRoom.customer.guests} kishi):</span>
-                <span className="font-mono font-bold text-amber-300">
-                  {formatUZS(Math.round(calcRoomTotal(selectedRoom.id) / selectedRoom.customer.guests))}
-                </span>
-              </div>
-            )}
-
-            {/* Bill Actions */}
-            <div className="pt-2 flex gap-2">
-              <button
-                onClick={() => handlePrintCurrentRoomBill(selectedRoom)}
-                className="flex-1 py-2.5 rounded-xl bg-navy-800 hover:bg-navy-750 text-white font-bold text-xs flex items-center justify-center gap-1.5 border border-white/10"
-              >
-                <Icons.Printer className="w-4 h-4 text-turquoise-400" />
-                <span>Chekni Chop Etish</span>
-              </button>
-              <button
-                onClick={() => handleOpenPayment(selectedRoom)}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-950"
-              >
-                To'lovni Qabul Qilish & Bo'shatish
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
                 </div>
               )}
 
               {/* TAB 4: FISH FOOD MENU */}
               {activeTab === 'menu' && (
-    <div className="space-y-6">
-      {/* Category Pills & Search */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          {[
-            { id: 'ALL', label: t.allDishes },
-            { id: 'fried', label: t.friedFish },
-            { id: 'grilled', label: t.grillFish },
-            { id: 'soup', label: t.soupFish },
-            { id: 'baked', label: t.steamedFish },
-            { id: 'seafood', label: t.seafood },
-            { id: 'special', label: t.specialFish }
-          ].map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setMenuFilter(cat.id)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${menuFilter === cat.id ? 'bg-turquoise-500 text-navy-950 shadow-glow-cyan' : 'bg-navy-850 text-slate-300 hover:bg-navy-800'
-                }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
+                <div className="space-y-6">
+                  {/* Category Pills & Search */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {[
+                        { id: 'ALL', label: t.allDishes },
+                        { id: 'fried', label: t.friedFish },
+                        { id: 'grilled', label: t.grillFish },
+                        { id: 'soup', label: t.soupFish },
+                        { id: 'baked', label: t.steamedFish },
+                        { id: 'seafood', label: t.seafood },
+                        { id: 'special', label: t.specialFish }
+                      ].map(cat => (
+                        <button
+                          key={cat.id}
+                          onClick={() => setMenuFilter(cat.id)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${menuFilter === cat.id ? 'bg-turquoise-500 text-navy-950 shadow-glow-cyan' : 'bg-navy-850 text-slate-300 hover:bg-navy-800'
+                            }`}
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 sm:w-52">
-            <input
-              type="text"
-              placeholder={t.search}
-              value={menuSearch}
-              onChange={(e) => setMenuSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-turquoise-400"
-            />
-            <Icons.Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-          </div>
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex-1 sm:w-52">
+                        <input
+                          type="text"
+                          placeholder={t.search}
+                          value={menuSearch}
+                          onChange={(e) => setMenuSearch(e.target.value)}
+                          className="w-full pl-8 pr-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-turquoise-400"
+                        />
+                        <Icons.Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      </div>
 
-          <button
-            onClick={() => setAddDishModal(true)}
-            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-turquoise-500 to-ocean-600 hover:from-turquoise-400 text-navy-950 font-black text-xs shadow-glow-cyan flex items-center gap-1.5 cursor-pointer"
-          >
-            <Icons.Plus className="w-3.5 h-3.5" />
-            <span>{t.addNewDish}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Food Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredDishes.map(rawDish => {
-          const dish = getLocalizedDish(rawDish, lang);
-          return (
-            <div key={dish.id} className="rounded-2xl overflow-hidden glass-card border border-white/10 flex flex-col justify-between hover:border-turquoise-500/40 transition-all">
-              <div>
-                <div className="h-44 w-full relative bg-navy-950">
-                  <img src={dish.image || dish.photo} alt={dish.name} className="w-full h-full object-cover" />
-                  <span className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-black/70 text-turquoise-300 text-[11px] font-bold">
-                    ⚖️ {dish.weight || (dish.weightGrams ? `${dish.weightGrams} gr` : '500 gr')}
-                  </span>
-                  {dish.popular && (
-                    <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-amber-500 text-navy-950 text-[10px] font-extrabold uppercase shadow-sm">
-                      {t.hitDish}
-                    </span>
-                  )}
-                </div>
-
-                <div className="p-4 space-y-2">
-                  <div className="flex justify-between items-start">
-                    <h4 className="font-bold text-white text-base leading-snug">{dish.name}</h4>
-                    <button onClick={() => handleDeleteDish(dish.id)} title="Taomni o'chirish" className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer">
-                      <Icons.Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                      <button
+                        onClick={() => setAddDishModal(true)}
+                        className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-turquoise-500 to-ocean-600 hover:from-turquoise-400 text-navy-950 font-black text-xs shadow-glow-cyan flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Icons.Plus className="w-3.5 h-3.5" />
+                        <span>{t.addNewDish}</span>
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{dish.description}</p>
-                  <p className="text-[11px] text-cyan-300 font-semibold">
-                    ⏱️ {t.cookingTime}: {dish.cookTime || '20 daqiqa'}
-                  </p>
-                </div>
-              </div>
 
-              <div className="p-4 pt-0">
-                <div className="flex justify-between items-center pt-3 border-t border-white/10">
-                  <span className="font-mono font-black text-amber-400 text-base">{formatUZS(dish.price)}</span>
-                  <button
-                    onClick={() => setOrderModal({ isOpen: true, dish, targetRoomId: selectedRoomId || 'r101' })}
-                    className="px-3 py-1.5 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 font-bold text-xs shadow-glow-cyan flex items-center gap-1 cursor-pointer"
-                  >
-                    <Icons.Plus className="w-3.5 h-3.5" />
-                    <span>{t.orderToRoom}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                  {/* Food Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredDishes.map(rawDish => {
+                      const dish = getLocalizedDish(rawDish, lang);
+                      return (
+                        <div key={dish.id} className="rounded-2xl overflow-hidden glass-card border border-white/10 flex flex-col justify-between hover:border-turquoise-500/40 transition-all">
+                          <div>
+                            <div className="h-44 w-full relative bg-navy-950">
+                              <img src={dish.image || dish.photo} alt={dish.name} className="w-full h-full object-cover" />
+                              <span className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-black/70 text-turquoise-300 text-[11px] font-bold">
+                                ⚖️ {dish.weight || (dish.weightGrams ? `${dish.weightGrams} gr` : '500 gr')}
+                              </span>
+                              {dish.popular && (
+                                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-amber-500 text-navy-950 text-[10px] font-extrabold uppercase shadow-sm">
+                                  {t.hitDish}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="p-4 space-y-2">
+                              <div className="flex justify-between items-start">
+                                <h4 className="font-bold text-white text-base leading-snug">{dish.name}</h4>
+                                <button onClick={() => handleDeleteDish(dish.id)} title="Taomni o'chirish" className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer">
+                                  <Icons.Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{dish.description}</p>
+                              <p className="text-[11px] text-cyan-300 font-semibold">
+                                ⏱️ {t.cookingTime}: {dish.cookTime || '20 daqiqa'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="p-4 pt-0">
+                            <div className="flex justify-between items-center pt-3 border-t border-white/10">
+                              <span className="font-mono font-black text-amber-400 text-base">{formatUZS(dish.price)}</span>
+                              <button
+                                onClick={() => setOrderModal({ isOpen: true, dish, targetRoomId: selectedRoomId || 'r101' })}
+                                className="px-3 py-1.5 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 font-bold text-xs shadow-glow-cyan flex items-center gap-1 cursor-pointer"
+                              >
+                                <Icons.Plus className="w-3.5 h-3.5" />
+                                <span>{t.orderToRoom}</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
               {/* TAB 5: STAFF & EMPLOYEES (Xodimlar va Ishchilar) */}
               {activeTab === 'staff' && (
-    <div className="space-y-6">
-      {/* Top Header & Fast Action */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="font-extrabold text-white text-lg tracking-tight flex items-center gap-2">
-            <span>{t.tabStaff}</span>
-            <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-bold font-mono">
-              {staff.length} {t.roomsCount}
-            </span>
-          </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Restoran ofitsiantlari, oshpazlar jamoasi va xizmat ko'rsatish nazorati
-          </p>
-        </div>
-
-        <button
-          onClick={() => setAddStaffModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-turquoise-500 to-cyan-500 hover:from-turquoise-400 hover:to-cyan-400 text-navy-950 font-black text-xs shadow-glow-cyan flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] cursor-pointer"
-        >
-          <Icons.Plus className="w-4 h-4" />
-          <span>{t.addNewStaff}</span>
-        </button>
-      </div>
-
-      {/* Staff KPI Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-gradient-to-b from-[#0e1118] to-[#06070a] border border-white/[0.08] shadow-xl">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
-            <span>{t.allStaff}</span>
-            <span className="text-cyan-400">👥</span>
-          </div>
-          <p className="text-2xl font-black text-white mt-1.5 font-sans">{staff.length} ta</p>
-          <p className="text-[10px] text-slate-500 mt-0.5">To'liq shtatdagi xodimlar</p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-gradient-to-b from-[#0e1118] to-[#06070a] border border-emerald-500/30 shadow-xl">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
-            <span className="text-emerald-400 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-              <span>{t.staffOnDuty}</span>
-            </span>
-            <span className="text-emerald-400">🟢</span>
-          </div>
-          <p className="text-2xl font-black text-emerald-400 mt-1.5 font-sans">
-            {staff.filter(s => s.status === 'active').length} ta
-          </p>
-          <p className="text-[10px] text-emerald-300/70 mt-0.5">Hozir smenada xizmatda</p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-gradient-to-b from-[#0e1118] to-[#06070a] border border-white/[0.08] shadow-xl">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
-            <span>{t.staffWaiters}</span>
-            <span className="text-amber-400">🤵</span>
-          </div>
-          <p className="text-2xl font-black text-amber-400 mt-1.5 font-sans">
-            {staff.filter(s => s.roleType === 'waiter').length} ta
-          </p>
-          <p className="text-[10px] text-slate-500 mt-0.5">Stollarga biriktirilgan</p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-gradient-to-b from-[#0e1118] to-[#06070a] border border-white/[0.08] shadow-xl">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
-            <span>{t.staffChefs}</span>
-            <span className="text-cyan-300">👨‍🍳</span>
-          </div>
-          <p className="text-2xl font-black text-cyan-300 mt-1.5 font-sans">
-            {staff.filter(s => s.roleType === 'chef').length} ta
-          </p>
-          <p className="text-[10px] text-slate-500 mt-0.5">Oshxona & Gril ustalari</p>
-        </div>
-      </div>
-
-      {/* Filter Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        {[
-          { id: 'ALL', label: t.allStaff, count: staff.length },
-          { id: 'waiter', label: t.staffWaiters, count: staff.filter(s => s.roleType === 'waiter').length },
-          { id: 'chef', label: t.staffChefs, count: staff.filter(s => s.roleType === 'chef').length },
-          { id: 'admin', label: t.staffAdmin, count: staff.filter(s => s.roleType === 'admin').length },
-          { id: 'cashier', label: t.staffCashiers, count: staff.filter(s => s.roleType === 'cashier').length }
-        ].map(f => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setStaffRoleFilter(f.id)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 ${staffRoleFilter === f.id
-              ? 'bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan'
-              : 'bg-navy-900 text-slate-400 hover:text-white hover:bg-navy-800 border border-white/5'
-              }`}
-          >
-            <span>{f.label}</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${staffRoleFilter === f.id ? 'bg-black/20 text-black' : 'bg-white/10 text-slate-300'}`}>
-              {f.count}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* Staff Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {staff
-          .filter(s => staffRoleFilter === 'ALL' || s.roleType === staffRoleFilter)
-          .map(member => {
-            const isOnDuty = member.status === 'active';
-
-            return (
-              <div
-                key={member.id}
-                className={`rounded-2xl p-5 bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border transition-all duration-300 shadow-xl flex flex-col justify-between hover:-translate-y-1 ${isOnDuty
-                  ? 'border-white/[0.08] hover:border-turquoise-500/40'
-                  : 'border-white/[0.04] opacity-80 hover:opacity-100'
-                  }`}
-              >
-                <div className="space-y-4">
-                  {/* Top Bar: Avatar, Name & Duty Badge */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <img
-                          src={member.avatar}
-                          alt={member.name}
-                          className="w-13 h-13 rounded-2xl object-cover border-2 border-white/10 shadow-md"
-                          style={{ width: '52px', height: '52px' }}
-                        />
-                        {/* Online Ping Badge */}
-                        <span
-                          className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-black flex items-center justify-center ${isOnDuty ? 'bg-emerald-500' : 'bg-slate-500'
-                            }`}
-                          title={isOnDuty ? t.staffOnDuty : t.staffOffDuty}
-                        >
-                          {isOnDuty && <span className="w-1.5 h-1.5 rounded-full bg-white"></span>}
+                <div className="space-y-6">
+                  {/* Top Header & Fast Action */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className={`font-extrabold text-lg tracking-tight flex items-center gap-2 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
+                        <span>{t.tabStaff}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold font-mono border ${theme === 'light' ? 'bg-cyan-100 text-cyan-800 border-cyan-300' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                          }`}>
+                          {staff.length} {t.roomsCount}
                         </span>
-                      </div>
-
-                      <div>
-                        <h4 className="font-extrabold text-white text-base tracking-tight leading-snug">
-                          {member.name}
-                        </h4>
-                        <p className="text-xs font-semibold text-turquoise-300 flex items-center gap-1.5">
-                          <span>{member.role}</span>
-                        </p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">
-                          {t.staffExperience}: <strong className="text-slate-300">{member.experience}</strong> • ⭐ {member.rating || 5.0}
-                        </p>
-                      </div>
+                      </h3>
+                      <p className={`text-xs mt-0.5 ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                        Restoran ofitsiantlari, oshpazlar jamoasi va xizmat ko'rsatish nazorati
+                      </p>
                     </div>
 
                     <button
-                      type="button"
-                      onClick={() => handleDeleteStaff(member.id)}
-                      className="text-slate-500 hover:text-rose-400 transition-colors p-1"
-                      title="Xodimni o'chirish"
+                      onClick={() => setAddStaffModal(true)}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-turquoise-500 to-cyan-500 hover:from-turquoise-400 hover:to-cyan-400 text-navy-950 font-black text-xs shadow-glow-cyan flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] cursor-pointer"
                     >
-                      <Icons.Trash2 className="w-4 h-4" />
+                      <Icons.Plus className="w-4 h-4" />
+                      <span>{t.addNewStaff}</span>
                     </button>
                   </div>
 
-                  {/* Details Pod */}
-                  <div className="p-3 rounded-xl bg-navy-950/70 border border-white/5 space-y-2 text-xs">
-                    <div className="flex justify-between items-center text-slate-400">
-                      <span>📞 {t.phone}:</span>
-                      <a href={`tel:${member.phone}`} className="font-mono text-cyan-300 font-bold hover:underline">
-                        {member.phone}
-                      </a>
+                  {/* Staff KPI Stat Cards */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className={`p-4 rounded-2xl border shadow-md ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-gradient-to-b from-[#0e1118] to-[#06070a] border-white/[0.08]'
+                      }`}>
+                      <div className={`flex items-center justify-between text-xs font-semibold ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                        <span>{t.allStaff}</span>
+                        <span>👥</span>
+                      </div>
+                      <p className={`text-2xl font-black mt-1.5 font-sans ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{staff.length} ta</p>
+                      <p className={`text-[10px] mt-0.5 ${theme === 'light' ? 'text-slate-500 font-medium' : 'text-slate-500'}`}>To'liq shtatdagi xodimlar</p>
                     </div>
-                    <div className="flex justify-between items-center text-slate-400">
-                      <span>⏰ {t.staffShift}:</span>
-                      <span className="font-mono text-slate-200 font-bold">{member.shift}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-slate-400">
-                      <span>💰 {t.staffSalary}:</span>
-                      <span className="font-mono text-amber-400 font-bold">{member.salary}</span>
-                    </div>
-                  </div>
 
-                  {/* Assigned Rooms */}
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                      {t.staffAssignedRooms}:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(member.assignedRooms || []).map((r, ri) => (
-                        <span
-                          key={ri}
-                          className="px-2 py-0.5 rounded-lg bg-turquoise-500/10 border border-turquoise-500/20 text-turquoise-300 text-[10px] font-medium"
-                        >
-                          {r}
+                    <div className={`p-4 rounded-2xl border shadow-md ${theme === 'light' ? 'bg-white border-emerald-300' : 'bg-gradient-to-b from-[#0e1118] to-[#06070a] border-emerald-500/30'
+                      }`}>
+                      <div className="flex items-center justify-between text-xs font-semibold">
+                        <span className="text-emerald-600 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                          <span>{t.staffOnDuty}</span>
                         </span>
-                      ))}
+                        <span>🟢</span>
+                      </div>
+                      <p className={`text-2xl font-black mt-1.5 font-sans ${theme === 'light' ? 'text-emerald-700' : 'text-emerald-400'}`}>
+                        {staff.filter(s => s.status === 'active').length} ta
+                      </p>
+                      <p className={`text-[10px] mt-0.5 ${theme === 'light' ? 'text-emerald-700/80 font-medium' : 'text-emerald-300/70'}`}>Hozir smenada xizmatda</p>
+                    </div>
+
+                    <div className={`p-4 rounded-2xl border shadow-md ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-gradient-to-b from-[#0e1118] to-[#06070a] border-white/[0.08]'
+                      }`}>
+                      <div className={`flex items-center justify-between text-xs font-semibold ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                        <span>{t.staffWaiters}</span>
+                        <span>🤵</span>
+                      </div>
+                      <p className={`text-2xl font-black mt-1.5 font-sans ${theme === 'light' ? 'text-amber-600' : 'text-amber-400'}`}>
+                        {staff.filter(s => s.roleType === 'waiter').length} ta
+                      </p>
+                      <p className={`text-[10px] mt-0.5 ${theme === 'light' ? 'text-slate-500 font-medium' : 'text-slate-500'}`}>Stollarga biriktirilgan</p>
+                    </div>
+
+                    <div className={`p-4 rounded-2xl border shadow-md ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-gradient-to-b from-[#0e1118] to-[#06070a] border-white/[0.08]'
+                      }`}>
+                      <div className={`flex items-center justify-between text-xs font-semibold ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                        <span>{t.staffChefs}</span>
+                        <span>👨‍🍳</span>
+                      </div>
+                      <p className={`text-2xl font-black mt-1.5 font-sans ${theme === 'light' ? 'text-cyan-700' : 'text-cyan-300'}`}>
+                        {staff.filter(s => s.roleType === 'chef').length} ta
+                      </p>
+                      <p className={`text-[10px] mt-0.5 ${theme === 'light' ? 'text-slate-500 font-medium' : 'text-slate-500'}`}>Oshxona & Gril ustalari</p>
                     </div>
                   </div>
-                </div>
 
-                {/* Bottom Card Actions */}
-                <div className="pt-4 mt-4 border-t border-white/5 flex items-center justify-between gap-3">
-                  <span className="text-[11px] text-slate-400">
-                    {t.staffTodayOrders}: <strong className="text-white font-mono">{member.todayOrders || 0} ta</strong>
-                  </span>
+                  {/* Filter Pills */}
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                    {[
+                      { id: 'ALL', label: t.allStaff, count: staff.length },
+                      { id: 'waiter', label: t.staffWaiters, count: staff.filter(s => s.roleType === 'waiter').length },
+                      { id: 'chef', label: t.staffChefs, count: staff.filter(s => s.roleType === 'chef').length },
+                      { id: 'admin', label: t.staffAdmin, count: staff.filter(s => s.roleType === 'admin').length },
+                      { id: 'cashier', label: t.staffCashiers, count: staff.filter(s => s.roleType === 'cashier').length }
+                    ].map(f => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setStaffRoleFilter(f.id)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 ${staffRoleFilter === f.id
+                          ? 'bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan'
+                          : (theme === 'light'
+                            ? 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-xs'
+                            : 'bg-navy-900 text-slate-400 hover:text-white hover:bg-navy-800 border border-white/5')
+                          }`}
+                      >
+                        <span>{f.label}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${staffRoleFilter === f.id ? 'bg-black/20 text-black' : (theme === 'light' ? 'bg-slate-100 text-slate-700' : 'bg-white/10 text-slate-300')}`}>
+                          {f.count}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleToggleStaffStatus(member.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${isOnDuty
-                      ? 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40'
-                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10'
-                      }`}
-                  >
-                    {isOnDuty ? `✓ ${t.staffOnDuty}` : `⏸ ${t.staffOffDuty}`}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-      </div>
+                  {/* Staff Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {staff
+                      .filter(s => staffRoleFilter === 'ALL' || s.roleType === staffRoleFilter)
+                      .map(member => {
+                        const isOnDuty = member.status === 'active';
+
+                        return (
+                          <div
+                            key={member.id}
+                            className={`rounded-2xl p-5 border transition-all duration-300 shadow-md flex flex-col justify-between hover:-translate-y-1 ${theme === 'light'
+                                ? (isOnDuty ? 'bg-white border-slate-200 hover:border-turquoise-400' : 'bg-slate-50 border-slate-200 opacity-80 hover:opacity-100')
+                                : (isOnDuty ? 'bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border-white/[0.08] hover:border-turquoise-500/40' : 'bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border-white/[0.04] opacity-80 hover:opacity-100')
+                              }`}
+                          >
+                            <div className="space-y-4">
+                              {/* Top Bar: Avatar, Name & Duty Badge */}
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="relative">
+                                    <img
+                                      src={member.avatar}
+                                      alt={member.name}
+                                      className={`w-13 h-13 rounded-2xl object-cover border-2 shadow-md ${theme === 'light' ? 'border-slate-200' : 'border-white/10'}`}
+                                      style={{ width: '52px', height: '52px' }}
+                                    />
+                                    {/* Online Ping Badge */}
+                                    <span
+                                      className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${theme === 'light' ? 'border-white' : 'border-black'
+                                        } ${isOnDuty ? 'bg-emerald-500' : 'bg-slate-500'}`}
+                                      title={isOnDuty ? t.staffOnDuty : t.staffOffDuty}
+                                    >
+                                      {isOnDuty && <span className="w-1.5 h-1.5 rounded-full bg-white"></span>}
+                                    </span>
+                                  </div>
+
+                                  <div>
+                                    <h4 className={`font-black text-base tracking-tight leading-snug ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
+                                      {member.name}
+                                    </h4>
+                                    <p className={`text-xs font-bold flex items-center gap-1.5 ${theme === 'light' ? 'text-turquoise-600' : 'text-turquoise-300'}`}>
+                                      <span>{member.role}</span>
+                                    </p>
+                                    <p className={`text-[10px] mt-0.5 ${theme === 'light' ? 'text-slate-500 font-medium' : 'text-slate-500'}`}>
+                                      {t.staffExperience}: <strong className={theme === 'light' ? 'text-slate-700' : 'text-slate-300'}>{member.experience}</strong> • ⭐ {member.rating || 5.0}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteStaff(member.id)}
+                                  className="text-slate-400 hover:text-rose-500 transition-colors p-1"
+                                  title="Xodimni o'chirish"
+                                >
+                                  <Icons.Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+
+                              {/* Details Pod (Telefon, Ish Smenasi, Maoshi) */}
+                              <div className={`p-3 rounded-xl space-y-2 text-xs border ${theme === 'light'
+                                  ? 'bg-slate-50 border-slate-200 text-slate-700'
+                                  : 'bg-navy-950/70 border-white/5 text-slate-400'
+                                }`}>
+                                <div className={`flex justify-between items-center ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
+                                  <span>📞 {t.phone}:</span>
+                                  <a href={`tel:${member.phone}`} className={`font-mono font-bold hover:underline ${theme === 'light' ? 'text-cyan-700' : 'text-cyan-300'}`}>
+                                    {member.phone}
+                                  </a>
+                                </div>
+                                <div className={`flex justify-between items-center ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
+                                  <span>⏰ {t.staffShift}:</span>
+                                  <span className={`font-mono font-bold ${theme === 'light' ? 'text-slate-800' : 'text-slate-200'}`}>{member.shift}</span>
+                                </div>
+                                <div className={`flex justify-between items-center ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
+                                  <span>💰 {t.staffSalary}:</span>
+                                  <span className={`font-mono font-bold ${theme === 'light' ? 'text-amber-600' : 'text-amber-400'}`}>{member.salary}</span>
+                                </div>
+                              </div>
+
+                              {/* Assigned Rooms */}
+                              <div className="space-y-1.5">
+                                <span className={`text-[10px] font-bold uppercase tracking-wider block ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                                  {t.staffAssignedRooms}:
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {(member.assignedRooms || []).map((r, ri) => (
+                                    <span
+                                      key={ri}
+                                      className={`px-2 py-0.5 rounded-lg border text-[10px] font-bold ${theme === 'light'
+                                          ? 'bg-cyan-50 border-cyan-200 text-cyan-800'
+                                          : 'bg-turquoise-500/10 border-turquoise-500/20 text-turquoise-300'
+                                        }`}
+                                    >
+                                      {r}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Bottom Card Actions */}
+                            <div className={`pt-4 mt-4 border-t flex items-center justify-between gap-3 ${theme === 'light' ? 'border-slate-200' : 'border-white/5'}`}>
+                              <span className={`text-[11px] ${theme === 'light' ? 'text-slate-600 font-medium' : 'text-slate-400'}`}>
+                                {t.staffTodayOrders}: <strong className={`font-mono font-bold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{member.todayOrders || 0} ta</strong>
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={() => handleToggleStaffStatus(member.id)}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${isOnDuty
+                                  ? (theme === 'light'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                                    : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40')
+                                  : (theme === 'light'
+                                    ? 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200'
+                                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10')
+                                  }`}
+                              >
+                                {isOnDuty ? `✓ ${t.staffOnDuty}` : `⏸ ${t.staffOffDuty}`}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               )}
 
               {/* TAB 6: RESERVATIONS (Band Qilingan Xonalar) */}
               {activeTab === 'reservations' && (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="font-bold text-white text-base">Xona Rezervatsiyalari</h3>
-          <p className="text-xs text-slate-400">Oldindan band qilingan mijozlar ro'yxati</p>
-        </div>
-        <button
-          onClick={() => setBookingModal({ isOpen: true, targetRoomId: '' })}
-          className="px-4 py-2 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 font-black text-xs shadow-glow-cyan flex items-center gap-1.5"
-        >
-          <Icons.Plus className="w-3.5 h-3.5" />
-          <span>+ Yangi Band Qilish</span>
-        </button>
-      </div>
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-bold text-white text-base">Xona Rezervatsiyalari</h3>
+                      <p className="text-xs text-slate-400">Oldindan band qilingan mijozlar ro'yxati</p>
+                    </div>
+                    <button
+                      onClick={() => setBookingModal({ isOpen: true, targetRoomId: '' })}
+                      className="px-4 py-2 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 font-black text-xs shadow-glow-cyan flex items-center gap-1.5"
+                    >
+                      <Icons.Plus className="w-3.5 h-3.5" />
+                      <span>+ Yangi Band Qilish</span>
+                    </button>
+                  </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {reservations.map(res => (
-          <div key={res.id} className="p-5 rounded-2xl glass-card border border-white/10 space-y-3 text-xs hover:border-amber-500/40 transition-all flex flex-col justify-between">
-            <div className="space-y-2">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h4 className="font-bold text-white text-sm">{res.customerName}</h4>
-                  <p className="text-[11px] text-slate-400">📞 {res.phone}</p>
-                </div>
-                <span className="px-2.5 py-1 rounded-full bg-amber-500 text-navy-950 font-bold text-xs">
-                  ⏰ {res.time}
-                </span>
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {reservations.map(res => (
+                      <div key={res.id} className="p-5 rounded-2xl glass-card border border-white/10 space-y-3 text-xs hover:border-amber-500/40 transition-all flex flex-col justify-between">
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-bold text-white text-sm">{res.customerName}</h4>
+                              <p className="text-[11px] text-slate-400">📞 {res.phone}</p>
+                            </div>
+                            <span className="px-2.5 py-1 rounded-full bg-amber-500 text-navy-950 font-bold text-xs">
+                              ⏰ {res.time}
+                            </span>
+                          </div>
 
-              <div className="p-3 rounded-xl bg-navy-900 border border-white/5 space-y-1">
-                <p className="text-slate-300">Xona: <strong className="text-turquoise-300">№{res.roomNumber} ({res.roomName})</strong></p>
-                <p className="text-slate-300">Sana: <strong>{res.date}</strong></p>
-                <p className="text-slate-300">Mehmonlar soni: <strong>{res.guests} kishi</strong></p>
-                {res.deposit && <p className="text-slate-300">Garov (Zalog): <strong className="text-emerald-400">{formatUZS(res.deposit)}</strong></p>}
-                {res.notes && <p className="text-slate-400 italic">Eslatma: "{res.notes}"</p>}
-              </div>
-            </div>
+                          <div className="p-3 rounded-xl bg-navy-900 border border-white/5 space-y-1">
+                            <p className="text-slate-300">Xona: <strong className="text-turquoise-300">№{res.roomNumber} ({res.roomName})</strong></p>
+                            <p className="text-slate-300">Sana: <strong>{res.date}</strong></p>
+                            <p className="text-slate-300">Mehmonlar soni: <strong>{res.guests} kishi</strong></p>
+                            {res.deposit && <p className="text-slate-300">Garov (Zalog): <strong className="text-emerald-400">{formatUZS(res.deposit)}</strong></p>}
+                            {res.notes && <p className="text-slate-400 italic">Eslatma: "{res.notes}"</p>}
+                          </div>
+                        </div>
 
-            <div className="pt-3 border-t border-white/10 flex gap-2">
-              <button
-                onClick={() => handleSeatReservation(res)}
-                className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
-              >
-                Joylashtirish (Zanit)
-              </button>
-              <button
-                onClick={() => handleCancelReservation(res.id)}
-                className="px-3 py-2 rounded-xl bg-navy-800 text-rose-400 hover:bg-rose-950/60 font-semibold text-xs border border-white/5"
-              >
-                Bekor qilish
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+                        <div className="pt-3 border-t border-white/10 flex gap-2">
+                          <button
+                            onClick={() => handleSeatReservation(res)}
+                            className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
+                          >
+                            Joylashtirish (Zanit)
+                          </button>
+                          <button
+                            onClick={() => handleCancelReservation(res.id)}
+                            className="px-3 py-2 rounded-xl bg-navy-800 text-rose-400 hover:bg-rose-950/60 font-semibold text-xs border border-white/5"
+                          >
+                            Bekor qilish
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
               {/* TAB 7: KITCHEN ORDERS (Oshxona Buyurtmalari) */}
               {activeTab === 'orders' && (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          {[
-            { id: 'ALL', label: `${t.all} (${allKitchenOrders.length})` },
-            { id: 'pending', label: t.kitchenPending, color: 'text-amber-400' },
-            { id: 'preparing', label: t.kitchenCooking, color: 'text-cyan-400' },
-            { id: 'ready', label: t.kitchenReady, color: 'text-emerald-400' }
-          ].map(st => (
-            <button
-              key={st.id}
-              onClick={() => setOrderStatusFilter(st.id)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${orderStatusFilter === st.id ? 'bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan' : 'bg-navy-850 text-slate-300 hover:bg-navy-800'
-                }`}
-            >
-              {st.label}
-            </button>
-          ))}
-        </div>
-      </div>
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      {[
+                        { id: 'ALL', label: `${t.all} (${allKitchenOrders.length})` },
+                        { id: 'pending', label: t.kitchenPending, color: 'text-amber-400' },
+                        { id: 'preparing', label: t.kitchenCooking, color: 'text-cyan-400' },
+                        { id: 'ready', label: t.kitchenReady, color: 'text-emerald-400' }
+                      ].map(st => (
+                        <button
+                          key={st.id}
+                          onClick={() => setOrderStatusFilter(st.id)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${orderStatusFilter === st.id ? 'bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan' : 'bg-navy-850 text-slate-300 hover:bg-navy-800'
+                            }`}
+                        >
+                          {st.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-      {filteredKitchenOrders.length === 0 ? (
-        <div className="text-center py-16 text-slate-400 text-sm glass-card rounded-2xl p-8 border border-white/10">
-          <Icons.ChefHat className="w-12 h-12 mx-auto mb-3 opacity-40 text-cyan-400" />
-          <p>Hozircha buyurtmalar mavjud emas.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredKitchenOrders.map(ord => (
-            <div key={ord.id} className="p-4 rounded-2xl glass-card border border-white/10 space-y-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="text-xs font-bold text-turquoise-400">№{ord.roomNumber} – {ord.roomName}</span>
-                  <h4 className="font-extrabold text-white text-base mt-0.5">{ord.name}</h4>
-                  <p className="text-xs text-slate-400 font-mono">{t.amount}: <strong className="text-white text-sm">{ord.quantity}x</strong></p>
-                </div>
-                <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${ord.status === 'ready' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
-                  ord.status === 'preparing' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' :
-                    'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  }`}>
-                  {ord.status === 'ready' ? t.kitchenReady : ord.status === 'preparing' ? t.kitchenCooking : t.kitchenPending}
-                </span>
-              </div>
+                  {filteredKitchenOrders.length === 0 ? (
+                    <div className="text-center py-16 text-slate-400 text-sm glass-card rounded-2xl p-8 border border-white/10">
+                      <Icons.ChefHat className="w-12 h-12 mx-auto mb-3 opacity-40 text-cyan-400" />
+                      <p>Hozircha buyurtmalar mavjud emas.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredKitchenOrders.map(ord => (
+                        <div key={ord.id} className="p-4 rounded-2xl glass-card border border-white/10 space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="text-xs font-bold text-turquoise-400">№{ord.roomNumber} – {ord.roomName}</span>
+                              <h4 className="font-extrabold text-white text-base mt-0.5">{ord.name}</h4>
+                              <p className="text-xs text-slate-400 font-mono">{t.amount}: <strong className="text-white text-sm">{ord.quantity}x</strong></p>
+                            </div>
+                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${ord.status === 'ready' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
+                              ord.status === 'preparing' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' :
+                                'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                              }`}>
+                              {ord.status === 'ready' ? t.kitchenReady : ord.status === 'preparing' ? t.kitchenCooking : t.kitchenPending}
+                            </span>
+                          </div>
 
-              {ord.notes && (
-                <p className="text-xs p-2 rounded-lg bg-navy-950/60 text-amber-300 border border-amber-500/20 italic">
-                  "{ord.notes}"
-                </p>
-              )}
+                          {ord.notes && (
+                            <p className="text-xs p-2 rounded-lg bg-navy-950/60 text-amber-300 border border-amber-500/20 italic">
+                              "{ord.notes}"
+                            </p>
+                          )}
 
-              <div className="pt-2 border-t border-white/10 flex justify-between items-center text-xs">
-                <span className="text-slate-400">⏰ {ord.time}</span>
-                <div className="flex gap-1.5">
-                  {ord.status === 'pending' && (
-                    <button onClick={() => handleUpdateOrderStatus(ord.roomId, ord.id, 'preparing')} className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs cursor-pointer">
-                      {t.cookDish}
-                    </button>
+                          <div className="pt-2 border-t border-white/10 flex justify-between items-center text-xs">
+                            <span className="text-slate-400">⏰ {ord.time}</span>
+                            <div className="flex gap-1.5">
+                              {ord.status === 'pending' && (
+                                <button onClick={() => handleUpdateOrderStatus(ord.roomId, ord.id, 'preparing')} className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs cursor-pointer">
+                                  {t.cookDish}
+                                </button>
+                              )}
+                              {ord.status === 'preparing' && (
+                                <button onClick={() => handleUpdateOrderStatus(ord.roomId, ord.id, 'ready')} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer">
+                                  {t.readyDish}
+                                </button>
+                              )}
+                              {ord.status === 'ready' && (
+                                <button onClick={() => handleRemoveOrderItem(ord.roomId, ord.id)} className="px-3 py-1.5 rounded-lg bg-navy-800 text-slate-300 hover:text-white font-semibold text-xs cursor-pointer">
+                                  Tugatish & Olib ketish
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                  {ord.status === 'preparing' && (
-                    <button onClick={() => handleUpdateOrderStatus(ord.roomId, ord.id, 'ready')} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer">
-                      {t.readyDish}
-                    </button>
-                  )}
-                  {ord.status === 'ready' && (
-                    <button onClick={() => handleRemoveOrderItem(ord.roomId, ord.id)} className="px-3 py-1.5 rounded-lg bg-navy-800 text-slate-300 hover:text-white font-semibold text-xs cursor-pointer">
-                      Tugatish & Olib ketish
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
                 </div>
               )}
 
               {/* TAB 8: ROOM BILLS (Umumiy Hisob-Kitob) */}
               {activeTab === 'bills' && (
-    <div className="space-y-6">
-      <div>
-        <h3 className="font-bold text-white text-base">Faol Xonalar Hisoblari (Jonli Kassa)</h3>
-        <p className="text-xs text-slate-400">Barcha band xonalar bo'yicha jonli hisob-kitoblar</p>
-      </div>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-bold text-white text-base">Faol Xonalar Hisoblari (Jonli Kassa)</h3>
+                    <p className="text-xs text-slate-400">Barcha band xonalar bo'yicha jonli hisob-kitoblar</p>
+                  </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rooms.filter(r => r.status === 'OCCUPIED').map(room => (
-          <div key={room.id} className="p-5 rounded-2xl glass-card border border-white/10 space-y-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="px-2 py-0.5 rounded bg-red-600 text-white font-extrabold text-[10px]">ZANIT</span>
-                <h4 className="font-bold text-white text-base mt-1">№{room.number} – {room.name}</h4>
-                <p className="text-xs text-slate-400">Mijoz: {room.customer?.name} &bull; {room.customer?.phone}</p>
-              </div>
-              <span className="font-mono font-black text-turquoise-300 text-lg">{formatUZS(calcRoomTotal(room.id))}</span>
-            </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {rooms.filter(r => r.status === 'OCCUPIED').map(room => (
+                      <div key={room.id} className="p-5 rounded-2xl glass-card border border-white/10 space-y-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className="px-2 py-0.5 rounded bg-red-600 text-white font-extrabold text-[10px]">ZANIT</span>
+                            <h4 className="font-bold text-white text-base mt-1">№{room.number} – {room.name}</h4>
+                            <p className="text-xs text-slate-400">Mijoz: {room.customer?.name} &bull; {room.customer?.phone}</p>
+                          </div>
+                          <span className="font-mono font-black text-turquoise-300 text-lg">{formatUZS(calcRoomTotal(room.id))}</span>
+                        </div>
 
-            <div className="space-y-1.5 py-2 border-y border-white/10 text-xs">
-              {(roomOrders[room.id] || []).map((it, idx) => (
-                <div key={idx} className="flex justify-between text-slate-300">
-                  <span>{it.name} ({it.quantity}x)</span>
-                  <span className="font-mono">{formatUZS(it.price * it.quantity)}</span>
-                </div>
-              ))}
-            </div>
+                        <div className="space-y-1.5 py-2 border-y border-white/10 text-xs">
+                          {(roomOrders[room.id] || []).map((it, idx) => (
+                            <div key={idx} className="flex justify-between text-slate-300">
+                              <span>{it.name} ({it.quantity}x)</span>
+                              <span className="font-mono">{formatUZS(it.price * it.quantity)}</span>
+                            </div>
+                          ))}
+                        </div>
 
-            <div className="flex gap-2">
-              <button onClick={() => handlePrintCurrentRoomBill(room)} className="flex-1 py-2 rounded-xl bg-navy-800 text-slate-200 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer">
-                <Icons.Printer className="w-3.5 h-3.5 text-turquoise-400" />
-                <span>{t.printReceipt}</span>
-              </button>
-              <button onClick={() => handleOpenPayment(room)} className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer">
-                {t.releaseRoomBtn}
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => handlePrintCurrentRoomBill(room)} className="flex-1 py-2 rounded-xl bg-navy-800 text-slate-200 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer">
+                            <Icons.Printer className="w-3.5 h-3.5 text-turquoise-400" />
+                            <span>{t.printReceipt}</span>
+                          </button>
+                          <button onClick={() => handleOpenPayment(room)} className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer">
+                            {t.releaseRoomBtn}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
-      {/* Closed Bills History */}
-      <div className="pt-6">
-        <h3 className="font-bold text-white text-base mb-3">
-          {lang === 'ru' ? 'История Оплаченных Счетов' : lang === 'en' ? 'Paid Invoices History' : "To'langan Hisoblar Tarixi"}
-        </h3>
-        <div className="glass-card rounded-2xl border border-white/10 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-navy-900 border-b border-white/10 text-slate-400 uppercase text-[10px]">
-                <tr>
-                  <th className="p-3.5">{lang === 'ru' ? 'Чек ID' : lang === 'en' ? 'Receipt ID' : 'Chek ID'}</th>
-                  <th className="p-3.5">{t.roomBadge}</th>
-                  <th className="p-3.5">{t.guestName}</th>
-                  <th className="p-3.5">{t.date} & {t.time}</th>
-                  <th className="p-3.5">{lang === 'ru' ? 'Способ Оплаты' : lang === 'en' ? 'Payment Method' : "To'lov Usuli"}</th>
-                  <th className="p-3.5 text-right">{t.total}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {salesHistory.slice(0, 10).map((bill, idx) => (
-                  <tr key={idx} className="hover:bg-navy-900/50">
-                    <td className="p-3.5 font-mono text-turquoise-300 font-bold">{bill.id}</td>
-                    <td className="p-3.5 font-bold text-white">№{bill.roomNumber} ({bill.roomName})</td>
-                    <td className="p-3.5 text-slate-300">{bill.customerName}</td>
-                    <td className="p-3.5 text-slate-400">{bill.date} {bill.time}</td>
-                    <td className="p-3.5"><span className="px-2 py-0.5 rounded bg-navy-800 text-slate-300">{bill.paymentMethod || 'Naqd'}</span></td>
-                    <td className="p-3.5 text-right font-mono font-bold text-emerald-400">{formatUZS(bill.total)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+                  {/* Closed Bills History */}
+                  <div className="pt-6">
+                    <h3 className="font-bold text-white text-base mb-3">
+                      {lang === 'ru' ? 'История Оплаченных Счетов' : lang === 'en' ? 'Paid Invoices History' : "To'langan Hisoblar Tarixi"}
+                    </h3>
+                    <div className="glass-card rounded-2xl border border-white/10 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-navy-900 border-b border-white/10 text-slate-400 uppercase text-[10px]">
+                            <tr>
+                              <th className="p-3.5">{lang === 'ru' ? 'Чек ID' : lang === 'en' ? 'Receipt ID' : 'Chek ID'}</th>
+                              <th className="p-3.5">{t.roomBadge}</th>
+                              <th className="p-3.5">{t.guestName}</th>
+                              <th className="p-3.5">{t.date} & {t.time}</th>
+                              <th className="p-3.5">{lang === 'ru' ? 'Способ Оплаты' : lang === 'en' ? 'Payment Method' : "To'lov Usuli"}</th>
+                              <th className="p-3.5 text-right">{t.total}</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/5">
+                            {salesHistory.slice(0, 10).map((bill, idx) => (
+                              <tr key={idx} className="hover:bg-navy-900/50">
+                                <td className="p-3.5 font-mono text-turquoise-300 font-bold">{bill.id}</td>
+                                <td className="p-3.5 font-bold text-white">№{bill.roomNumber} ({bill.roomName})</td>
+                                <td className="p-3.5 text-slate-300">{bill.customerName}</td>
+                                <td className="p-3.5 text-slate-400">{bill.date} {bill.time}</td>
+                                <td className="p-3.5"><span className="px-2 py-0.5 rounded bg-navy-800 text-slate-300">{bill.paymentMethod || 'Naqd'}</span></td>
+                                <td className="p-3.5 text-right font-mono font-bold text-emerald-400">{formatUZS(bill.total)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {/* TAB 9: REPORTS & STATISTICS (Hisobotlar) */}
               {activeTab === 'reports' && (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="font-bold text-white text-base">
-            {lang === 'ru' ? 'Выручка и Статистика Ресторана' : lang === 'en' ? 'Restaurant Revenue & Analytics' : "Restoran Tushumi va Statistikasi"}
-          </h3>
-          <p className="text-xs text-slate-400">
-            {lang === 'ru' ? 'Анализ ежедневных, еженедельных и ежемесячных доходов' : lang === 'en' ? 'Daily, weekly and monthly income breakdown' : "Kunlik, haftalik va oylik daromad tahlili"}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {['daily', 'weekly', 'monthly'].map(p => (
-            <button
-              key={p}
-              onClick={() => setReportPeriod(p)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase cursor-pointer ${reportPeriod === p ? 'bg-turquoise-500 text-navy-950 font-black' : 'bg-navy-850 text-slate-300'}`}
-            >
-              {p === 'daily'
-                ? (lang === 'ru' ? 'День' : lang === 'en' ? 'Daily' : 'Kunlik')
-                : p === 'weekly'
-                  ? (lang === 'ru' ? 'Неделя' : lang === 'en' ? 'Weekly' : 'Haftalik')
-                  : (lang === 'ru' ? 'Месяц' : lang === 'en' ? 'Monthly' : 'Oylik')}
-            </button>
-          ))}
-        </div>
-      </div>
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-bold text-white text-base">
+                        {lang === 'ru' ? 'Выручка и Статистика Ресторана' : lang === 'en' ? 'Restaurant Revenue & Analytics' : "Restoran Tushumi va Statistikasi"}
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        {lang === 'ru' ? 'Анализ ежедневных, еженедельных и ежемесячных доходов' : lang === 'en' ? 'Daily, weekly and monthly income breakdown' : "Kunlik, haftalik va oylik daromad tahlili"}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      {['daily', 'weekly', 'monthly'].map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setReportPeriod(p)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase cursor-pointer ${reportPeriod === p ? 'bg-turquoise-500 text-navy-950 font-black' : 'bg-navy-850 text-slate-300'}`}
+                        >
+                          {p === 'daily'
+                            ? (lang === 'ru' ? 'День' : lang === 'en' ? 'Daily' : 'Kunlik')
+                            : p === 'weekly'
+                              ? (lang === 'ru' ? 'Неделя' : lang === 'en' ? 'Weekly' : 'Haftalik')
+                              : (lang === 'ru' ? 'Месяц' : lang === 'en' ? 'Monthly' : 'Oylik')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="glass-card rounded-2xl p-5 border border-white/10">
-          <p className="text-xs text-slate-400 uppercase font-semibold">Bugungi Sof Daromad</p>
-          <h2 className="text-3xl font-extrabold text-cyan-300 font-mono mt-2">{formatUZS(metrics.todayRevenue)}</h2>
-          <p className="text-[11px] text-emerald-400 mt-1">&uarr; Kechagiga nisbatan +18% yuqori</p>
-        </div>
-        <div className="glass-card rounded-2xl p-5 border border-white/10">
-          <p className="text-xs text-slate-400 uppercase font-semibold">Haftalik Daromad</p>
-          <h2 className="text-3xl font-extrabold text-white font-mono mt-2">{formatUZS(metrics.todayRevenue * 6.5)}</h2>
-          <p className="text-[11px] text-slate-400 mt-1">42 ta buyurtma qabul qilingan</p>
-        </div>
-        <div className="glass-card rounded-2xl p-5 border border-white/10">
-          <p className="text-xs text-slate-400 uppercase font-semibold">Oylik Prognoz</p>
-          <h2 className="text-3xl font-extrabold text-amber-400 font-mono mt-2">{formatUZS(metrics.todayRevenue * 28)}</h2>
-          <p className="text-[11px] text-amber-300 mt-1">Reja 92% bajarildi</p>
-        </div>
-      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div className="glass-card rounded-2xl p-5 border border-white/10">
+                      <p className="text-xs text-slate-400 uppercase font-semibold">Bugungi Sof Daromad</p>
+                      <h2 className="text-3xl font-extrabold text-cyan-300 font-mono mt-2">{formatUZS(metrics.todayRevenue)}</h2>
+                      <p className="text-[11px] text-emerald-400 mt-1">&uarr; Kechagiga nisbatan +18% yuqori</p>
+                    </div>
+                    <div className="glass-card rounded-2xl p-5 border border-white/10">
+                      <p className="text-xs text-slate-400 uppercase font-semibold">Haftalik Daromad</p>
+                      <h2 className="text-3xl font-extrabold text-white font-mono mt-2">{formatUZS(metrics.todayRevenue * 6.5)}</h2>
+                      <p className="text-[11px] text-slate-400 mt-1">42 ta buyurtma qabul qilingan</p>
+                    </div>
+                    <div className="glass-card rounded-2xl p-5 border border-white/10">
+                      <p className="text-xs text-slate-400 uppercase font-semibold">Oylik Prognoz</p>
+                      <h2 className="text-3xl font-extrabold text-amber-400 font-mono mt-2">{formatUZS(metrics.todayRevenue * 28)}</h2>
+                      <p className="text-[11px] text-amber-300 mt-1">Reja 92% bajarildi</p>
+                    </div>
+                  </div>
 
-      {/* Top Popular Fish Dishes */}
-      <div className="glass-card rounded-2xl p-6 border border-white/10 space-y-4">
-        <h4 className="font-bold text-white text-base">Eng Ko'p Sotilgan Baliq Taomlari</h4>
-        <div className="space-y-3">
-          {dishes.slice(0, 5).map((dish, i) => {
-            const count = 38 - i * 6;
-            const pct = Math.round((count / 38) * 100);
-            return (
-              <div key={dish.id} className="space-y-1 text-xs">
-                <div className="flex justify-between font-semibold">
-                  <span className="text-white">{i + 1}. {dish.name}</span>
-                  <span className="text-turquoise-300 font-mono">{count} porsiya ({formatUZS(dish.price * count)})</span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-navy-950 overflow-hidden">
-                  <div className="h-full rounded-full bg-gradient-to-r from-turquoise-500 to-cyan-400" style={{ width: `${pct}%` }}></div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+                  {/* Top Popular Fish Dishes */}
+                  <div className="glass-card rounded-2xl p-6 border border-white/10 space-y-4">
+                    <h4 className="font-bold text-white text-base">Eng Ko'p Sotilgan Baliq Taomlari</h4>
+                    <div className="space-y-3">
+                      {dishes.slice(0, 5).map((dish, i) => {
+                        const count = 38 - i * 6;
+                        const pct = Math.round((count / 38) * 100);
+                        return (
+                          <div key={dish.id} className="space-y-1 text-xs">
+                            <div className="flex justify-between font-semibold">
+                              <span className="text-white">{i + 1}. {dish.name}</span>
+                              <span className="text-turquoise-300 font-mono">{count} porsiya ({formatUZS(dish.price * count)})</span>
+                            </div>
+                            <div className="w-full h-2 rounded-full bg-navy-950 overflow-hidden">
+                              <div className="h-full rounded-full bg-gradient-to-r from-turquoise-500 to-cyan-400" style={{ width: `${pct}%` }}></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
 
               {/* TAB 10: SETTINGS (Sozlamalar) */}
               {activeTab === 'settings' && (
-    <div className="space-y-6 max-w-2xl">
-      <div>
-        <h3 className="font-bold text-white text-base">{t.tabSettings}</h3>
-        <p className="text-xs text-slate-400">Muassasa ma'lumotlari, til va xizmat haqi parametrlari</p>
-      </div>
+                <div className="space-y-6 max-w-2xl">
+                  <div>
+                    <h3 className="font-bold text-white text-base">{t.tabSettings}</h3>
+                    <p className="text-xs text-slate-400">Muassasa ma'lumotlari, til va xizmat haqi parametrlari</p>
+                  </div>
 
-      {/* Language Selector in Settings */}
-      <div className="glass-card rounded-2xl p-6 border border-white/10 space-y-3 text-xs">
-        <label className="text-slate-300 block font-semibold text-sm">
-          🌐 {t.languageSelect}:
-        </label>
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { id: 'uz', name: "O'zbek tili", flag: '🇺🇿', desc: "Lotin yozuvida" },
-            { id: 'ru', name: "Русский язык", flag: '🇷🇺', desc: "Интерфейс на русском" },
-            { id: 'en', name: "English", flag: '🇬🇧', desc: "Full English interface" }
-          ].map(item => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => handleLanguageChange(item.id)}
-              className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${lang === item.id
-                ? 'bg-turquoise-500/20 border-turquoise-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.3)]'
-                : 'bg-navy-900 border-white/10 text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xl">{item.flag}</span>
-                <span className="font-extrabold text-sm text-white">{item.name}</span>
-              </div>
-              <p className="text-[11px] text-slate-400">{item.desc}</p>
-            </button>
-          ))}
-        </div>
-      </div>
+                  {/* Language Selector in Settings */}
+                  <div className="glass-card rounded-2xl p-6 border border-white/10 space-y-3 text-xs">
+                    <label className="text-slate-300 block font-semibold text-sm">
+                      🌐 {t.languageSelect}:
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { id: 'uz', name: "O'zbek tili", flag: '🇺🇿', desc: "Lotin yozuvida" },
+                        { id: 'ru', name: "Русский язык", flag: '🇷🇺', desc: "Интерфейс на русском" },
+                        { id: 'en', name: "English", flag: '🇬🇧', desc: "Full English interface" }
+                      ].map(item => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleLanguageChange(item.id)}
+                          className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${lang === item.id
+                            ? 'bg-turquoise-500/20 border-turquoise-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.3)]'
+                            : 'bg-navy-900 border-white/10 text-slate-400 hover:text-white hover:bg-white/5'
+                            }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xl">{item.flag}</span>
+                            <span className="font-extrabold text-sm text-white">{item.name}</span>
+                          </div>
+                          <p className="text-[11px] text-slate-400">{item.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        showToast(t.success, 'success');
-      }} className="glass-card rounded-2xl p-6 border border-white/10 space-y-4 text-xs">
-        <div>
-          <label className="text-slate-300 block mb-1 font-semibold">{t.restaurantInfo}:</label>
-          <input
-            type="text"
-            value={settings.name}
-            onChange={(e) => setSettings({ ...settings, name: e.target.value })}
-            className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold"
-          />
-        </div>
-        <div>
-          <label className="text-slate-300 block mb-1 font-semibold">{t.address}:</label>
-          <input
-            type="text"
-            value={settings.address}
-            onChange={(e) => setSettings({ ...settings, address: e.target.value })}
-            className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white"
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">{t.phone}:</label>
-            <input
-              type="text"
-              value={settings.phone}
-              onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white"
-            />
-          </div>
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">{t.serviceChargePct}:</label>
-            <input
-              type="number"
-              value={settings.serviceChargePercent}
-              onChange={(e) => setSettings({ ...settings, serviceChargePercent: Number(e.target.value) })}
-              className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold"
-            />
-          </div>
-        </div>
-        <div>
-          <label className="text-slate-300 block mb-1 font-semibold">{t.workingHours}:</label>
-          <input
-            type="text"
-            value={settings.workingHours}
-            onChange={(e) => setSettings({ ...settings, workingHours: e.target.value })}
-            className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white"
-          />
-        </div>
-        <div className="pt-2 flex justify-between items-center">
-          <button type="submit" className="px-5 py-2.5 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 font-black shadow-glow-cyan cursor-pointer">
-            {t.save}
-          </button>
-          <button type="button" onClick={handleResetDemoData} className="px-4 py-2.5 rounded-xl bg-navy-800 text-rose-400 hover:bg-rose-950 font-bold border border-rose-500/20 cursor-pointer">
-            Boshlang'ich Ma'lumotlarni Qaytarish
-          </button>
-        </div>
-      </form>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    showToast(t.success, 'success');
+                  }} className="glass-card rounded-2xl p-6 border border-white/10 space-y-4 text-xs">
+                    <div>
+                      <label className="text-slate-300 block mb-1 font-semibold">{t.restaurantInfo}:</label>
+                      <input
+                        type="text"
+                        value={settings.name}
+                        onChange={(e) => setSettings({ ...settings, name: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-slate-300 block mb-1 font-semibold">{t.address}:</label>
+                      <input
+                        type="text"
+                        value={settings.address}
+                        onChange={(e) => setSettings({ ...settings, address: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-slate-300 block mb-1 font-semibold">{t.phone}:</label>
+                        <input
+                          type="text"
+                          value={settings.phone}
+                          onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-300 block mb-1 font-semibold">{t.serviceChargePct}:</label>
+                        <input
+                          type="number"
+                          value={settings.serviceChargePercent}
+                          onChange={(e) => setSettings({ ...settings, serviceChargePercent: Number(e.target.value) })}
+                          className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-slate-300 block mb-1 font-semibold">{t.workingHours}:</label>
+                      <input
+                        type="text"
+                        value={settings.workingHours}
+                        onChange={(e) => setSettings({ ...settings, workingHours: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white"
+                      />
+                    </div>
+                    <div className="pt-2 flex justify-between items-center">
+                      <button type="submit" className="px-5 py-2.5 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 font-black shadow-glow-cyan cursor-pointer">
+                        {t.save}
+                      </button>
+                      <button type="button" onClick={handleResetDemoData} className="px-4 py-2.5 rounded-xl bg-navy-800 text-rose-400 hover:bg-rose-950 font-bold border border-rose-500/20 cursor-pointer">
+                        Boshlang'ich Ma'lumotlarni Qaytarish
+                      </button>
+                    </div>
+                  </form>
                 </div>
               )}
 
@@ -2353,611 +2496,611 @@ export default function App() {
 
       {/* MODAL: Order Food to Room */}
       {orderModal.isOpen && orderModal.dish && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="w-full max-w-md rounded-2xl glass-card border border-white/10 p-6 space-y-4 text-xs">
-        <div className="flex justify-between items-center pb-2 border-b border-white/10">
-          <h3 className="font-bold text-white text-base">Xonaga Taom Buyurtma Qilish</h3>
-          <button onClick={() => setOrderModal({ isOpen: false, dish: null, targetRoomId: '' })} className="text-slate-400 hover:text-white">&times;</button>
-        </div>
-        <div className="flex gap-3 items-center p-3 rounded-xl bg-navy-900 border border-white/5">
-          <img src={orderModal.dish.image || orderModal.dish.photo} alt={orderModal.dish.name} className="w-16 h-16 rounded-lg object-cover" />
-          <div>
-            <h4 className="font-bold text-white text-sm">{orderModal.dish.name}</h4>
-            <p className="text-turquoise-300 font-mono font-bold">{formatUZS(orderModal.dish.price)}</p>
-            <p className="text-slate-400 text-[11px]">{orderModal.dish.weight || '500 gr'}</p>
-          </div>
-        </div>
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const fd = new FormData(e.target);
-          handleAddFoodToRoom(fd.get('targetRoomId'), orderModal.dish, Number(fd.get('quantity')), fd.get('notes'));
-        }} className="space-y-3">
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Qaysi Xonaga:</label>
-            <select name="targetRoomId" defaultValue={orderModal.targetRoomId || selectedRoomId} className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold">
-              {rooms.map(r => (
-                <option key={r.id} value={r.id}>
-                  №{r.number} – {r.name} ({r.status === 'OCCUPIED' ? 'ZANIT' : r.status === 'RESERVED' ? 'BAND' : 'BO\'SH'})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Porsiyalar Soni:</label>
-            <input name="quantity" type="number" min="1" defaultValue="1" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold" />
-          </div>
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Oshxona Uchun Eslatma (Ixtiyoriy):</label>
-            <input name="notes" placeholder="Masalan: Achchiq sous alohida keltirilsin" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
-          </div>
-          <div className="pt-2 flex gap-2">
-            <button type="button" onClick={() => setOrderModal({ isOpen: false, dish: null, targetRoomId: '' })} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
-            <button type="submit" className="flex-1 py-2.5 rounded-xl bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan">Buyurtmani Tasdiqlash</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )}
-
-  {/* MODAL: Booking / Reservation */}
-  {bookingModal.isOpen && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="w-full max-w-md rounded-2xl glass-card border border-white/10 p-6 space-y-4 text-xs">
-        <div className="flex justify-between items-center pb-2 border-b border-white/10">
-          <h3 className="font-bold text-white text-base">Xonani Band Qilish (Bron)</h3>
-          <button onClick={() => setBookingModal({ isOpen: false, targetRoomId: '' })} className="text-slate-400 hover:text-white">&times;</button>
-        </div>
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const fd = new FormData(e.target);
-          const rId = fd.get('roomId');
-          const selRoom = rooms.find(r => r.id === rId);
-          handleCreateReservation({
-            roomId: rId,
-            roomNumber: selRoom ? selRoom.number : '?',
-            roomName: selRoom ? selRoom.name : 'Xona',
-            customerName: fd.get('customerName'),
-            phone: fd.get('phone'),
-            date: fd.get('date'),
-            time: fd.get('time'),
-            guests: Number(fd.get('guests')),
-            deposit: Number(fd.get('deposit')) || 0,
-            notes: fd.get('notes')
-          });
-        }} className="space-y-3">
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Xonani Tanlang:</label>
-            <select name="roomId" defaultValue={bookingModal.targetRoomId || rooms.find(r => r.status === 'AVAILABLE')?.id || rooms[0].id} className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold">
-              {rooms.map(r => (
-                <option key={r.id} value={r.id} disabled={r.status === 'OCCUPIED'}>
-                  №{r.number} – {r.name} ({r.seats} o'rinli) {r.status === 'OCCUPIED' ? '(ZANIT - Band qilib bo\'lmaydi)' : r.status === 'RESERVED' ? '(Band qilingan)' : '(Bo\'sh)'}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Sana:</label>
-              <input name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-2xl glass-card border border-white/10 p-6 space-y-4 text-xs">
+            <div className="flex justify-between items-center pb-2 border-b border-white/10">
+              <h3 className="font-bold text-white text-base">Xonaga Taom Buyurtma Qilish</h3>
+              <button onClick={() => setOrderModal({ isOpen: false, dish: null, targetRoomId: '' })} className="text-slate-400 hover:text-white">&times;</button>
             </div>
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Vaqt:</label>
-              <input name="time" type="time" required defaultValue="19:00" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono" />
-            </div>
-          </div>
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Mijoz Ism-Familiyasi:</label>
-            <input name="customerName" required placeholder="Masalan: Jamshid Karimov" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Telefon Raqami:</label>
-              <input name="phone" required defaultValue="+998 " className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono" />
-            </div>
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Mehmonlar Soni:</label>
-              <input name="guests" type="number" min="1" max="50" defaultValue="4" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold" />
-            </div>
-          </div>
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Oldindan Garov / Zalog (UZS):</label>
-            <input name="deposit" type="number" defaultValue="200000" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono" />
-          </div>
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Eslatma:</label>
-            <input name="notes" placeholder="Tug'ilgan kun dasturxoni..." className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
-          </div>
-          <div className="pt-2 flex gap-2">
-            <button type="button" onClick={() => setBookingModal({ isOpen: false, targetRoomId: '' })} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
-            <button type="submit" className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 font-black shadow-glow-cyan">Band Qilishni Tasdiqlash</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )}
-
-  {/* MODAL: Check-In Guest (Xonani Ochish) */}
-  {checkInModal.isOpen && checkInModal.room && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="w-full max-w-md rounded-2xl glass-card border border-white/10 p-6 space-y-4 text-xs">
-        <div className="flex justify-between items-center pb-2 border-b border-white/10">
-          <h3 className="font-bold text-white text-base">№{checkInModal.room.number} – Xonani Ochish (ZANIT)</h3>
-          <button onClick={() => setCheckInModal({ isOpen: false, room: null })} className="text-slate-400 hover:text-white">&times;</button>
-        </div>
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const fd = new FormData(e.target);
-          handleCheckInGuest(checkInModal.room.id, {
-            name: fd.get('name'),
-            phone: fd.get('phone'),
-            guests: fd.get('guests'),
-            waiter: fd.get('waiter'),
-            notes: fd.get('notes')
-          });
-        }} className="space-y-3">
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Mehmon Ismi:</label>
-            <input name="name" required placeholder="Masalan: Sardor Komilov" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Telefon:</label>
-              <input name="phone" defaultValue="+998 90 " className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
-            </div>
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Kishilar soni:</label>
-              <input name="guests" type="number" defaultValue={checkInModal.room.seats} className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold" />
-            </div>
-          </div>
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Xizmat ko'rsatuvchi ofitsiant:</label>
-            <input name="waiter" defaultValue={currentUser ? currentUser.name : "Sardor Saidov"} className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
-          </div>
-          <div className="pt-2 flex gap-2">
-            <button type="button" onClick={() => setCheckInModal({ isOpen: false, room: null })} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
-            <button type="submit" className="flex-1 py-2.5 rounded-xl bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan">Xonani ZANIT Qilish</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )}
-
-  {/* MODAL: Transfer Table (Xonani Ko'chirish) */}
-  {transferModal.isOpen && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="w-full max-w-md rounded-2xl glass-card border border-white/10 p-6 space-y-4 text-xs">
-        <div className="flex justify-between items-center pb-2 border-b border-white/10">
-          <h3 className="font-bold text-white text-base">Xonani Boshqasiga Ko'chirish</h3>
-          <button onClick={() => setTransferModal({ isOpen: false, sourceRoomId: '' })} className="text-slate-400 hover:text-white">&times;</button>
-        </div>
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const fd = new FormData(e.target);
-          handleTransferTable(transferModal.sourceRoomId, fd.get('targetRoomId'));
-        }} className="space-y-3">
-          <p className="text-slate-300">
-            Hozirgi xonadagi barcha buyurtmalar va mehmon ma'lumotlari yangi tanlangan bo'sh xonaga ko'chiriladi.
-          </p>
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Qaysi Bo'sh Xonaga Ko'chiriladi:</label>
-            <select name="targetRoomId" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold">
-              {rooms.filter(r => r.id !== transferModal.sourceRoomId && r.status === 'AVAILABLE').map(r => (
-                <option key={r.id} value={r.id}>
-                  №{r.number} – {r.name} ({r.seats} kishilik, BO'SH)
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="pt-2 flex gap-2">
-            <button type="button" onClick={() => setTransferModal({ isOpen: false, sourceRoomId: '' })} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
-            <button type="submit" className="flex-1 py-2.5 rounded-xl bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan">Ko'chirishni Bajarish</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )}
-
-  {/* MODAL: Payment Modal (Hisobni Yopish & Bo'shatish) */}
-  {paymentModal.isOpen && paymentModal.room && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="w-full max-w-md rounded-2xl glass-card border border-white/10 p-6 space-y-4 text-xs">
-        <div className="flex justify-between items-center pb-2 border-b border-white/10">
-          <h3 className="font-bold text-white text-base">To'lovni Qabul Qilish & Bo'shatish</h3>
-          <button onClick={() => setPaymentModal({ isOpen: false, room: null })} className="text-slate-400 hover:text-white">&times;</button>
-        </div>
-        <div className="p-4 rounded-xl bg-navy-900 border border-turquoise-500/30 space-y-2">
-          <div className="flex justify-between text-slate-300">
-            <span>Xona:</span>
-            <strong className="text-white">№{paymentModal.room.number} ({paymentModal.room.name})</strong>
-          </div>
-          <div className="flex justify-between text-slate-300">
-            <span>Mehmon:</span>
-            <span>{paymentModal.room.customer?.name || 'Mijoz'}</span>
-          </div>
-          <div className="flex justify-between text-slate-300">
-            <span>Taomlar summasi:</span>
-            <span className="font-mono">{formatUZS(calcRoomSubtotal(paymentModal.room.id))}</span>
-          </div>
-          {calcRoomDiscount(paymentModal.room.id) > 0 && (
-            <div className="flex justify-between text-emerald-400">
-              <span>Chegirma:</span>
-              <span className="font-mono">-{formatUZS(calcRoomDiscount(paymentModal.room.id))}</span>
-            </div>
-          )}
-          <div className="flex justify-between text-slate-300">
-            <span>Xizmat haqi ({settings.serviceChargePercent}%):</span>
-            <span className="font-mono">+{formatUZS(calcRoomService(paymentModal.room.id))}</span>
-          </div>
-          <div className="pt-2 border-t border-white/10 flex justify-between items-baseline font-bold">
-            <span className="text-white text-sm">JAMI TO'LOV:</span>
-            <span className="text-turquoise-300 text-xl font-mono">{formatUZS(calcRoomTotal(paymentModal.room.id))}</span>
-          </div>
-        </div>
-
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const fd = new FormData(e.target);
-          handleConfirmPayment(paymentModal.room, fd.get('paymentMethod'));
-        }} className="space-y-3">
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">To'lov Usulini Tanlang:</label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { id: 'Naqd', label: '💵 Naqd' },
-                { id: 'Karta / Terminal', label: '💳 Uzcard / Humo' },
-                { id: 'Click / Payme', label: '📱 Click / Payme' }
-              ].map((m, idx) => (
-                <label key={m.id} className="p-3 rounded-xl bg-navy-900 border border-white/10 flex flex-col items-center justify-center cursor-pointer hover:border-turquoise-500/50">
-                  <input type="radio" name="paymentMethod" value={m.id} defaultChecked={idx === 0} className="mb-1 text-turquoise-500" />
-                  <span className="text-[11px] font-bold text-center text-white">{m.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          <div className="pt-2 flex gap-2">
-            <button type="button" onClick={() => setPaymentModal({ isOpen: false, room: null })} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
-            <button type="submit" className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-lg shadow-emerald-950">
-              To'lovni Tasdiqlash & Bo'shatish
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )}
-
-  {/* MODAL: Printable Receipt Modal */}
-  {receiptModal.isOpen && receiptModal.billData && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <div className="w-full max-w-sm rounded-2xl bg-white text-slate-900 p-6 space-y-4 my-8 font-mono text-xs shadow-2xl">
-        <div className="no-print flex justify-between items-center pb-2 border-b">
-          <span className="font-bold text-slate-600">Rasmiy Fiskal Chek</span>
-          <div className="flex gap-2">
-            <button onClick={() => window.print()} className="px-3 py-1 bg-navy-900 text-white rounded text-xs font-bold">Chop Etish</button>
-            <button onClick={() => setReceiptModal({ isOpen: false, billData: null })} className="text-slate-500 font-bold px-2">&times;</button>
-          </div>
-        </div>
-        <div id="printable-receipt-area" className="space-y-3">
-          <div className="text-center border-b pb-2">
-            <h3 className="font-extrabold text-base font-display">FISH HOUSE</h3>
-            <p className="text-[10px] text-slate-600">{settings.address} &bull; {settings.phone}</p>
-          </div>
-          <div className="border-b pb-2 space-y-1 text-[11px]">
-            <div className="flex justify-between"><span>Chek: <strong>{receiptModal.billData.id}</strong></span><span>{receiptModal.billData.date}</span></div>
-            <div className="flex justify-between"><span>Xona: <strong>№{receiptModal.billData.roomNumber}</strong></span><span>{receiptModal.billData.time}</span></div>
-            <div className="flex justify-between"><span>Mijoz: {receiptModal.billData.customerName}</span></div>
-            {receiptModal.billData.paymentMethod && <div className="flex justify-between"><span>To'lov usuli:</span><span>{receiptModal.billData.paymentMethod}</span></div>}
-          </div>
-          <div className="border-b pb-2 space-y-1">
-            {(receiptModal.billData.items || []).map((it, idx) => (
-              <div key={idx} className="flex justify-between">
-                <span>{it.name} ({it.quantity}x)</span>
-                <span className="font-bold">{formatUZS(it.subtotal || (it.price * it.quantity))}</span>
+            <div className="flex gap-3 items-center p-3 rounded-xl bg-navy-900 border border-white/5">
+              <img src={orderModal.dish.image || orderModal.dish.photo} alt={orderModal.dish.name} className="w-16 h-16 rounded-lg object-cover" />
+              <div>
+                <h4 className="font-bold text-white text-sm">{orderModal.dish.name}</h4>
+                <p className="text-turquoise-300 font-mono font-bold">{formatUZS(orderModal.dish.price)}</p>
+                <p className="text-slate-400 text-[11px]">{orderModal.dish.weight || '500 gr'}</p>
               </div>
-            ))}
-          </div>
-          <div className="border-b pb-2 space-y-1">
-            <div className="flex justify-between"><span>Taomlar summasi:</span><span>{formatUZS(receiptModal.billData.subtotal)}</span></div>
-            <div className="flex justify-between"><span>Xizmat haqi ({settings.serviceChargePercent}%):</span><span>+{formatUZS(receiptModal.billData.serviceCharge)}</span></div>
-            <div className="flex justify-between font-extrabold text-sm pt-1 border-t"><span>JAMI TO'LOV:</span><span>{formatUZS(receiptModal.billData.total)}</span></div>
-          </div>
-          <div className="text-center pt-2">
-            <p className="font-bold text-[10px]">TASHRIFINGIZ UCHUN RAHMAT!</p>
+            </div>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const fd = new FormData(e.target);
+              handleAddFoodToRoom(fd.get('targetRoomId'), orderModal.dish, Number(fd.get('quantity')), fd.get('notes'));
+            }} className="space-y-3">
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">Qaysi Xonaga:</label>
+                <select name="targetRoomId" defaultValue={orderModal.targetRoomId || selectedRoomId} className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold">
+                  {rooms.map(r => (
+                    <option key={r.id} value={r.id}>
+                      №{r.number} – {r.name} ({r.status === 'OCCUPIED' ? 'ZANIT' : r.status === 'RESERVED' ? 'BAND' : 'BO\'SH'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">Porsiyalar Soni:</label>
+                <input name="quantity" type="number" min="1" defaultValue="1" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold" />
+              </div>
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">Oshxona Uchun Eslatma (Ixtiyoriy):</label>
+                <input name="notes" placeholder="Masalan: Achchiq sous alohida keltirilsin" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
+              </div>
+              <div className="pt-2 flex gap-2">
+                <button type="button" onClick={() => setOrderModal({ isOpen: false, dish: null, targetRoomId: '' })} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
+                <button type="submit" className="flex-1 py-2.5 rounded-xl bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan">Buyurtmani Tasdiqlash</button>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
-    </div>
-  )}
-
-  {/* MODAL: Add New Room */}
-  {addRoomModal && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="w-full max-w-md rounded-2xl glass-card border border-white/10 p-6 space-y-4 text-xs">
-        <div className="flex justify-between items-center pb-2 border-b border-white/10">
-          <h3 className="font-bold text-white text-base">Yangi Xona / Kabinet Qo'shish</h3>
-          <button onClick={() => setAddRoomModal(false)} className="text-slate-400 hover:text-white">&times;</button>
-        </div>
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const fd = new FormData(e.target);
-          handleAddNewRoom({
-            number: fd.get('number'),
-            name: fd.get('name'),
-            subtitle: fd.get('subtitle'),
-            type: fd.get('type'),
-            seats: fd.get('seats'),
-            photo: fd.get('photo'),
-            description: fd.get('description')
-          });
-        }} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Xona Raqami:</label>
-              <input name="number" required placeholder="Masalan: 109" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold" />
-            </div>
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Xona Turi:</label>
-              <select name="type" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white">
-                <option value="VIP">VIP Hall</option>
-                <option value="Kabinet">Kabinet</option>
-                <option value="Lounge">Lounge</option>
-                <option value="Oila">Oilaviy Zal</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Xona Nomi:</label>
-            <input name="name" required placeholder="Masalan: Oltin Baliq Zali" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">O'rinlar Soni:</label>
-              <input name="seats" type="number" required defaultValue="8" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono" />
-            </div>
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Inglizcha Subtitle:</label>
-              <input name="subtitle" placeholder="Golden Fish Chamber" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
-            </div>
-          </div>
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Rasm URL:</label>
-            <input name="photo" placeholder="https://images.unsplash.com/..." className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
-          </div>
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Tavsif:</label>
-            <textarea name="description" rows="2" placeholder="Xona haqida qisqacha ma'lumot..." className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white"></textarea>
-          </div>
-          <div className="pt-2 flex gap-2">
-            <button type="button" onClick={() => setAddRoomModal(false)} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
-            <button type="submit" className="flex-1 py-2.5 rounded-xl bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan">Xonani Qo'shish</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-{/* MODAL: Add New Dish */ }
-{
-  addDishModal && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="w-full max-w-md rounded-2xl glass-card border border-white/10 p-6 space-y-4 text-xs">
-        <div className="flex justify-between items-center pb-2 border-b border-white/10">
-          <h3 className="font-bold text-white text-base">Yangi Baliq Taomi Qo'shish</h3>
-          <button onClick={() => setAddDishModal(false)} className="text-slate-400 hover:text-white">&times;</button>
-        </div>
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const fd = new FormData(e.target);
-          handleAddNewDish({
-            name: fd.get('name'),
-            category: fd.get('category'),
-            price: fd.get('price'),
-            weight: fd.get('weight'),
-            image: fd.get('image'),
-            description: fd.get('description')
-          });
-        }} className="space-y-3">
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Taom Nomi:</label>
-            <input name="name" required placeholder="Masalan: Farel Baliq Mangalda" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Kategoriya:</label>
-              <select name="category" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white">
-                <option value="fried">Qovurilgan Baliq</option>
-                <option value="grilled">Gril & Mangal</option>
-                <option value="soup">Sho'rva (Uxa)</option>
-                <option value="baked">Dimlama Baliq</option>
-                <option value="seafood">Dengiz Mahsulotlari</option>
-                <option value="special">Maxsus Taom</option>
-                <option value="salad">Salatlar</option>
-                <option value="drink">Ichimliklar</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Narxi (UZS):</label>
-              <input name="price" type="number" required defaultValue="95000" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold" />
-            </div>
-          </div>
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Vazni (gramm):</label>
-            <input name="weight" defaultValue="500" placeholder="500" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
-          </div>
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Rasm URL:</label>
-            <input name="image" placeholder="https://..." className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
-          </div>
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Tavsif:</label>
-            <textarea name="description" rows="2" placeholder="Taom haqida qisqacha..." className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white"></textarea>
-          </div>
-          <div className="pt-2 flex gap-2">
-            <button type="button" onClick={() => setAddDishModal(false)} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
-            <button type="submit" className="flex-1 py-2.5 rounded-xl bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan">Menyuga Qo'shish</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-{/* MODAL: Add New Staff Member (Yangi Xodim Qo'shish) */ }
-{
-  addStaffModal && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="w-full max-w-lg rounded-3xl bg-[#0f1117] border border-white/10 p-6 sm:p-7 space-y-4 text-xs text-white shadow-2xl my-auto">
-        <div className="flex justify-between items-center pb-3 border-b border-white/10">
-          <div>
-            <h3 className="font-extrabold text-white text-lg tracking-tight flex items-center gap-2">
-              <span>{t.addNewStaff}</span>
-            </h3>
-            <p className="text-[11px] text-slate-400">Yangi xodim ma'lumotlari, smenasi va biriktirilgan zallari</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setAddStaffModal(false)}
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center text-lg transition-colors cursor-pointer"
-          >
-            &times;
-          </button>
-        </div>
-
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const fd = new FormData(e.target);
-            handleAddNewStaff({
-              name: fd.get('name'),
-              role: fd.get('role'),
-              roleType: fd.get('roleType'),
-              phone: fd.get('phone'),
-              shift: fd.get('shift'),
-              salary: fd.get('salary'),
-              experience: fd.get('experience'),
-              assignedRooms: fd.get('assignedRooms'),
-              avatar: fd.get('avatar') || undefined
-            });
-          }}
-          className="space-y-3.5"
-        >
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Xodim F.I.O.:</label>
-            <input
-              name="name"
-              required
-              placeholder="Masalan: Dilshod Rahimov"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-bold placeholder-slate-500 focus:outline-none focus:border-turquoise-400"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Lavozimi (Nomi):</label>
-              <input
-                name="role"
-                required
-                placeholder="Masalan: Katta Ofitsiant"
-                defaultValue="Ofitsiant"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-semibold focus:outline-none focus:border-turquoise-400"
-              />
-            </div>
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Xodim Toifasi:</label>
-              <select
-                name="roleType"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-semibold focus:outline-none focus:border-turquoise-400"
-              >
-                <option value="waiter">🤵 Ofitsiant (Waiter)</option>
-                <option value="chef">👨‍🍳 Oshpaz (Chef / Gril)</option>
-                <option value="cashier">💳 Kassir (Cashier)</option>
-                <option value="admin">👑 Ma'muriyat (Admin)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Telefon Raqami:</label>
-              <input
-                name="phone"
-                required
-                defaultValue="+998 "
-                className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold focus:outline-none focus:border-turquoise-400"
-              />
-            </div>
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Ish Smenasi:</label>
-              <input
-                name="shift"
-                defaultValue="11:00 - 23:30"
-                placeholder="11:00 - 23:30"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-mono focus:outline-none focus:border-turquoise-400"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Oylik Maoshi / Stavka:</label>
-              <input
-                name="salary"
-                defaultValue="5 000 000 UZS"
-                placeholder="5 000 000 UZS"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold text-amber-400 focus:outline-none focus:border-turquoise-400"
-              />
-            </div>
-            <div>
-              <label className="text-slate-300 block mb-1 font-semibold">Ish Tajribasi:</label>
-              <input
-                name="experience"
-                defaultValue="2 yil"
-                placeholder="Masalan: 3 yil"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white focus:outline-none focus:border-turquoise-400"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">
-              Biriktirilgan Zallar (Vergul bilan ajrating):
-            </label>
-            <input
-              name="assignedRooms"
-              defaultValue="№101 VIP, №102"
-              placeholder="№101 Dengiz Marvaridi, №102"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white focus:outline-none focus:border-turquoise-400"
-            />
-          </div>
-
-          <div>
-            <label className="text-slate-300 block mb-1 font-semibold">Rasm / Avatar URL (Ixtiyoriy):</label>
-            <input
-              name="avatar"
-              placeholder="https://images.unsplash.com/photo-..."
-              className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white placeholder-slate-600 focus:outline-none focus:border-turquoise-400"
-            />
-          </div>
-
-          <div className="pt-3 flex gap-2.5">
-            <button
-              type="button"
-              onClick={() => setAddStaffModal(false)}
-              className="flex-1 py-3 rounded-xl bg-navy-800 hover:bg-navy-750 text-slate-300 font-bold transition-colors cursor-pointer"
-            >
-              {t.cancel}
-            </button>
-            <button
-              type="submit"
-              className="flex-1 py-3 rounded-xl bg-gradient-to-r from-turquoise-500 to-cyan-500 hover:from-turquoise-400 text-navy-950 font-black shadow-glow-cyan transition-transform transform active:scale-95 cursor-pointer"
-            >
-              {t.confirm}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
       )}
+
+      {/* MODAL: Booking / Reservation */}
+      {bookingModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-2xl glass-card border border-white/10 p-6 space-y-4 text-xs">
+            <div className="flex justify-between items-center pb-2 border-b border-white/10">
+              <h3 className="font-bold text-white text-base">Xonani Band Qilish (Bron)</h3>
+              <button onClick={() => setBookingModal({ isOpen: false, targetRoomId: '' })} className="text-slate-400 hover:text-white">&times;</button>
+            </div>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const fd = new FormData(e.target);
+              const rId = fd.get('roomId');
+              const selRoom = rooms.find(r => r.id === rId);
+              handleCreateReservation({
+                roomId: rId,
+                roomNumber: selRoom ? selRoom.number : '?',
+                roomName: selRoom ? selRoom.name : 'Xona',
+                customerName: fd.get('customerName'),
+                phone: fd.get('phone'),
+                date: fd.get('date'),
+                time: fd.get('time'),
+                guests: Number(fd.get('guests')),
+                deposit: Number(fd.get('deposit')) || 0,
+                notes: fd.get('notes')
+              });
+            }} className="space-y-3">
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">Xonani Tanlang:</label>
+                <select name="roomId" defaultValue={bookingModal.targetRoomId || rooms.find(r => r.status === 'AVAILABLE')?.id || rooms[0].id} className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold">
+                  {rooms.map(r => (
+                    <option key={r.id} value={r.id} disabled={r.status === 'OCCUPIED'}>
+                      №{r.number} – {r.name} ({r.seats} o'rinli) {r.status === 'OCCUPIED' ? '(ZANIT - Band qilib bo\'lmaydi)' : r.status === 'RESERVED' ? '(Band qilingan)' : '(Bo\'sh)'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Sana:</label>
+                  <input name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Vaqt:</label>
+                  <input name="time" type="time" required defaultValue="19:00" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono" />
+                </div>
+              </div>
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">Mijoz Ism-Familiyasi:</label>
+                <input name="customerName" required placeholder="Masalan: Jamshid Karimov" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Telefon Raqami:</label>
+                  <input name="phone" required defaultValue="+998 " className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono" />
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Mehmonlar Soni:</label>
+                  <input name="guests" type="number" min="1" max="50" defaultValue="4" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold" />
+                </div>
+              </div>
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">Oldindan Garov / Zalog (UZS):</label>
+                <input name="deposit" type="number" defaultValue="200000" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono" />
+              </div>
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">Eslatma:</label>
+                <input name="notes" placeholder="Tug'ilgan kun dasturxoni..." className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
+              </div>
+              <div className="pt-2 flex gap-2">
+                <button type="button" onClick={() => setBookingModal({ isOpen: false, targetRoomId: '' })} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
+                <button type="submit" className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 font-black shadow-glow-cyan">Band Qilishni Tasdiqlash</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Check-In Guest (Xonani Ochish) */}
+      {checkInModal.isOpen && checkInModal.room && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-2xl glass-card border border-white/10 p-6 space-y-4 text-xs">
+            <div className="flex justify-between items-center pb-2 border-b border-white/10">
+              <h3 className="font-bold text-white text-base">№{checkInModal.room.number} – {t.occupyRoomBtn || "Занять"} ({checkInModal.room.name})</h3>
+              <button onClick={() => setCheckInModal({ isOpen: false, room: null })} className="text-slate-400 hover:text-white">&times;</button>
+            </div>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const fd = new FormData(e.target);
+              handleCheckInGuest(checkInModal.room.id, {
+                name: fd.get('name'),
+                phone: fd.get('phone'),
+                guests: fd.get('guests'),
+                waiter: fd.get('waiter'),
+                notes: fd.get('notes')
+              });
+            }} className="space-y-3">
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">{t.guestName || "Mehmon Ismi"}:</label>
+                <input name="name" required defaultValue={checkInModal.room.reservation?.customerName || checkInModal.room.reservation?.name || ""} placeholder="Masalan: Sardor Komilov" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">{t.phone || "Telefon"}:</label>
+                  <input name="phone" defaultValue={checkInModal.room.reservation?.phone || "+998 90 "} className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">{t.guestsCount || "Kishilar soni"}:</label>
+                  <input name="guests" type="number" defaultValue={checkInModal.room.reservation?.guests || checkInModal.room.seats || 6} className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold" />
+                </div>
+              </div>
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">{t.assignedWaiter || "Xizmat ko'rsatuvchi ofitsiant"}:</label>
+                <input name="waiter" defaultValue={currentUser ? currentUser.name : "Sardor Saidov"} className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
+              </div>
+              <div className="pt-2 flex gap-2">
+                <button type="button" onClick={() => setCheckInModal({ isOpen: false, room: null })} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
+                <button type="submit" className="flex-1 py-2.5 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 font-black shadow-glow-cyan cursor-pointer">{t.occupyRoomBtn || "Занять"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Transfer Table (Xonani Ko'chirish) */}
+      {transferModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-2xl glass-card border border-white/10 p-6 space-y-4 text-xs">
+            <div className="flex justify-between items-center pb-2 border-b border-white/10">
+              <h3 className="font-bold text-white text-base">Xonani Boshqasiga Ko'chirish</h3>
+              <button onClick={() => setTransferModal({ isOpen: false, sourceRoomId: '' })} className="text-slate-400 hover:text-white">&times;</button>
+            </div>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const fd = new FormData(e.target);
+              handleTransferTable(transferModal.sourceRoomId, fd.get('targetRoomId'));
+            }} className="space-y-3">
+              <p className="text-slate-300">
+                Hozirgi xonadagi barcha buyurtmalar va mehmon ma'lumotlari yangi tanlangan bo'sh xonaga ko'chiriladi.
+              </p>
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">Qaysi Bo'sh Xonaga Ko'chiriladi:</label>
+                <select name="targetRoomId" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold">
+                  {rooms.filter(r => r.id !== transferModal.sourceRoomId && r.status === 'AVAILABLE').map(r => (
+                    <option key={r.id} value={r.id}>
+                      №{r.number} – {r.name} ({r.seats} kishilik, BO'SH)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="pt-2 flex gap-2">
+                <button type="button" onClick={() => setTransferModal({ isOpen: false, sourceRoomId: '' })} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
+                <button type="submit" className="flex-1 py-2.5 rounded-xl bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan">Ko'chirishni Bajarish</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Payment Modal (Hisobni Yopish & Bo'shatish) */}
+      {paymentModal.isOpen && paymentModal.room && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-2xl glass-card border border-white/10 p-6 space-y-4 text-xs">
+            <div className="flex justify-between items-center pb-2 border-b border-white/10">
+              <h3 className="font-bold text-white text-base">To'lovni Qabul Qilish & Bo'shatish</h3>
+              <button onClick={() => setPaymentModal({ isOpen: false, room: null })} className="text-slate-400 hover:text-white">&times;</button>
+            </div>
+            <div className="p-4 rounded-xl bg-navy-900 border border-turquoise-500/30 space-y-2">
+              <div className="flex justify-between text-slate-300">
+                <span>Xona:</span>
+                <strong className="text-white">№{paymentModal.room.number} ({paymentModal.room.name})</strong>
+              </div>
+              <div className="flex justify-between text-slate-300">
+                <span>Mehmon:</span>
+                <span>{paymentModal.room.customer?.name || 'Mijoz'}</span>
+              </div>
+              <div className="flex justify-between text-slate-300">
+                <span>Taomlar summasi:</span>
+                <span className="font-mono">{formatUZS(calcRoomSubtotal(paymentModal.room.id))}</span>
+              </div>
+              {calcRoomDiscount(paymentModal.room.id) > 0 && (
+                <div className="flex justify-between text-emerald-400">
+                  <span>Chegirma:</span>
+                  <span className="font-mono">-{formatUZS(calcRoomDiscount(paymentModal.room.id))}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-slate-300">
+                <span>Xizmat haqi ({settings.serviceChargePercent}%):</span>
+                <span className="font-mono">+{formatUZS(calcRoomService(paymentModal.room.id))}</span>
+              </div>
+              <div className="pt-2 border-t border-white/10 flex justify-between items-baseline font-bold">
+                <span className="text-white text-sm">JAMI TO'LOV:</span>
+                <span className="text-turquoise-300 text-xl font-mono">{formatUZS(calcRoomTotal(paymentModal.room.id))}</span>
+              </div>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const fd = new FormData(e.target);
+              handleConfirmPayment(paymentModal.room, fd.get('paymentMethod'));
+            }} className="space-y-3">
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">To'lov Usulini Tanlang:</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'Naqd', label: '💵 Naqd' },
+                    { id: 'Karta / Terminal', label: '💳 Uzcard / Humo' },
+                    { id: 'Click / Payme', label: '📱 Click / Payme' }
+                  ].map((m, idx) => (
+                    <label key={m.id} className="p-3 rounded-xl bg-navy-900 border border-white/10 flex flex-col items-center justify-center cursor-pointer hover:border-turquoise-500/50">
+                      <input type="radio" name="paymentMethod" value={m.id} defaultChecked={idx === 0} className="mb-1 text-turquoise-500" />
+                      <span className="text-[11px] font-bold text-center text-white">{m.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="pt-2 flex gap-2">
+                <button type="button" onClick={() => setPaymentModal({ isOpen: false, room: null })} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
+                <button type="submit" className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-lg shadow-emerald-950">
+                  To'lovni Tasdiqlash & Bo'shatish
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Printable Receipt Modal */}
+      {receiptModal.isOpen && receiptModal.billData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-sm rounded-2xl bg-white text-slate-900 p-6 space-y-4 my-8 font-mono text-xs shadow-2xl">
+            <div className="no-print flex justify-between items-center pb-2 border-b">
+              <span className="font-bold text-slate-600">Rasmiy Fiskal Chek</span>
+              <div className="flex gap-2">
+                <button onClick={() => window.print()} className="px-3 py-1 bg-navy-900 text-white rounded text-xs font-bold">Chop Etish</button>
+                <button onClick={() => setReceiptModal({ isOpen: false, billData: null })} className="text-slate-500 font-bold px-2">&times;</button>
+              </div>
+            </div>
+            <div id="printable-receipt-area" className="space-y-3">
+              <div className="text-center border-b pb-2">
+                <h3 className="font-extrabold text-base font-display">FISH HOUSE</h3>
+                <p className="text-[10px] text-slate-600">{settings.address} &bull; {settings.phone}</p>
+              </div>
+              <div className="border-b pb-2 space-y-1 text-[11px]">
+                <div className="flex justify-between"><span>Chek: <strong>{receiptModal.billData.id}</strong></span><span>{receiptModal.billData.date}</span></div>
+                <div className="flex justify-between"><span>Xona: <strong>№{receiptModal.billData.roomNumber}</strong></span><span>{receiptModal.billData.time}</span></div>
+                <div className="flex justify-between"><span>Mijoz: {receiptModal.billData.customerName}</span></div>
+                {receiptModal.billData.paymentMethod && <div className="flex justify-between"><span>To'lov usuli:</span><span>{receiptModal.billData.paymentMethod}</span></div>}
+              </div>
+              <div className="border-b pb-2 space-y-1">
+                {(receiptModal.billData.items || []).map((it, idx) => (
+                  <div key={idx} className="flex justify-between">
+                    <span>{it.name} ({it.quantity}x)</span>
+                    <span className="font-bold">{formatUZS(it.subtotal || (it.price * it.quantity))}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="border-b pb-2 space-y-1">
+                <div className="flex justify-between"><span>Taomlar summasi:</span><span>{formatUZS(receiptModal.billData.subtotal)}</span></div>
+                <div className="flex justify-between"><span>Xizmat haqi ({settings.serviceChargePercent}%):</span><span>+{formatUZS(receiptModal.billData.serviceCharge)}</span></div>
+                <div className="flex justify-between font-extrabold text-sm pt-1 border-t"><span>JAMI TO'LOV:</span><span>{formatUZS(receiptModal.billData.total)}</span></div>
+              </div>
+              <div className="text-center pt-2">
+                <p className="font-bold text-[10px]">TASHRIFINGIZ UCHUN RAHMAT!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Add New Room */}
+      {addRoomModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-2xl glass-card border border-white/10 p-6 space-y-4 text-xs">
+            <div className="flex justify-between items-center pb-2 border-b border-white/10">
+              <h3 className="font-bold text-white text-base">Yangi Xona / Kabinet Qo'shish</h3>
+              <button onClick={() => setAddRoomModal(false)} className="text-slate-400 hover:text-white">&times;</button>
+            </div>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const fd = new FormData(e.target);
+              handleAddNewRoom({
+                number: fd.get('number'),
+                name: fd.get('name'),
+                subtitle: fd.get('subtitle'),
+                type: fd.get('type'),
+                seats: fd.get('seats'),
+                photo: fd.get('photo'),
+                description: fd.get('description')
+              });
+            }} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Xona Raqami:</label>
+                  <input name="number" required placeholder="Masalan: 109" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold" />
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Xona Turi:</label>
+                  <select name="type" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white">
+                    <option value="VIP">VIP Hall</option>
+                    <option value="Kabinet">Kabinet</option>
+                    <option value="Lounge">Lounge</option>
+                    <option value="Oila">Oilaviy Zal</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">Xona Nomi:</label>
+                <input name="name" required placeholder="Masalan: Oltin Baliq Zali" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">O'rinlar Soni:</label>
+                  <input name="seats" type="number" required defaultValue="8" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono" />
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Inglizcha Subtitle:</label>
+                  <input name="subtitle" placeholder="Golden Fish Chamber" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
+                </div>
+              </div>
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">Rasm URL:</label>
+                <input name="photo" placeholder="https://images.unsplash.com/..." className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
+              </div>
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">Tavsif:</label>
+                <textarea name="description" rows="2" placeholder="Xona haqida qisqacha ma'lumot..." className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white"></textarea>
+              </div>
+              <div className="pt-2 flex gap-2">
+                <button type="button" onClick={() => setAddRoomModal(false)} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
+                <button type="submit" className="flex-1 py-2.5 rounded-xl bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan">Xonani Qo'shish</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )
+      }
+
+      {/* MODAL: Add New Dish */}
+      {
+        addDishModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div className="w-full max-w-md rounded-2xl glass-card border border-white/10 p-6 space-y-4 text-xs">
+              <div className="flex justify-between items-center pb-2 border-b border-white/10">
+                <h3 className="font-bold text-white text-base">Yangi Baliq Taomi Qo'shish</h3>
+                <button onClick={() => setAddDishModal(false)} className="text-slate-400 hover:text-white">&times;</button>
+              </div>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                handleAddNewDish({
+                  name: fd.get('name'),
+                  category: fd.get('category'),
+                  price: fd.get('price'),
+                  weight: fd.get('weight'),
+                  image: fd.get('image'),
+                  description: fd.get('description')
+                });
+              }} className="space-y-3">
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Taom Nomi:</label>
+                  <input name="name" required placeholder="Masalan: Farel Baliq Mangalda" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-bold" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-300 block mb-1 font-semibold">Kategoriya:</label>
+                    <select name="category" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white">
+                      <option value="fried">Qovurilgan Baliq</option>
+                      <option value="grilled">Gril & Mangal</option>
+                      <option value="soup">Sho'rva (Uxa)</option>
+                      <option value="baked">Dimlama Baliq</option>
+                      <option value="seafood">Dengiz Mahsulotlari</option>
+                      <option value="special">Maxsus Taom</option>
+                      <option value="salad">Salatlar</option>
+                      <option value="drink">Ichimliklar</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-slate-300 block mb-1 font-semibold">Narxi (UZS):</label>
+                    <input name="price" type="number" required defaultValue="95000" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Vazni (gramm):</label>
+                  <input name="weight" defaultValue="500" placeholder="500" className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Rasm URL:</label>
+                  <input name="image" placeholder="https://..." className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white" />
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Tavsif:</label>
+                  <textarea name="description" rows="2" placeholder="Taom haqida qisqacha..." className="w-full px-3 py-2 rounded-xl bg-navy-900 border border-white/10 text-white"></textarea>
+                </div>
+                <div className="pt-2 flex gap-2">
+                  <button type="button" onClick={() => setAddDishModal(false)} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
+                  <button type="submit" className="flex-1 py-2.5 rounded-xl bg-turquoise-500 text-navy-950 font-black shadow-glow-cyan">Menyuga Qo'shish</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )
+      }
+
+      {/* MODAL: Add New Staff Member (Yangi Xodim Qo'shish) */}
+      {
+        addStaffModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+            <div className="w-full max-w-lg rounded-3xl bg-[#0f1117] border border-white/10 p-6 sm:p-7 space-y-4 text-xs text-white shadow-2xl my-auto">
+              <div className="flex justify-between items-center pb-3 border-b border-white/10">
+                <div>
+                  <h3 className="font-extrabold text-white text-lg tracking-tight flex items-center gap-2">
+                    <span>{t.addNewStaff}</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400">Yangi xodim ma'lumotlari, smenasi va biriktirilgan zallari</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAddStaffModal(false)}
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center text-lg transition-colors cursor-pointer"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.target);
+                  handleAddNewStaff({
+                    name: fd.get('name'),
+                    role: fd.get('role'),
+                    roleType: fd.get('roleType'),
+                    phone: fd.get('phone'),
+                    shift: fd.get('shift'),
+                    salary: fd.get('salary'),
+                    experience: fd.get('experience'),
+                    assignedRooms: fd.get('assignedRooms'),
+                    avatar: fd.get('avatar') || undefined
+                  });
+                }}
+                className="space-y-3.5"
+              >
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Xodim F.I.O.:</label>
+                  <input
+                    name="name"
+                    required
+                    placeholder="Masalan: Dilshod Rahimov"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-bold placeholder-slate-500 focus:outline-none focus:border-turquoise-400"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-300 block mb-1 font-semibold">Lavozimi (Nomi):</label>
+                    <input
+                      name="role"
+                      required
+                      placeholder="Masalan: Katta Ofitsiant"
+                      defaultValue="Ofitsiant"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-semibold focus:outline-none focus:border-turquoise-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-300 block mb-1 font-semibold">Xodim Toifasi:</label>
+                    <select
+                      name="roleType"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-semibold focus:outline-none focus:border-turquoise-400"
+                    >
+                      <option value="waiter">🤵 Ofitsiant (Waiter)</option>
+                      <option value="chef">👨‍🍳 Oshpaz (Chef / Gril)</option>
+                      <option value="cashier">💳 Kassir (Cashier)</option>
+                      <option value="admin">👑 Ma'muriyat (Admin)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-300 block mb-1 font-semibold">Telefon Raqami:</label>
+                    <input
+                      name="phone"
+                      required
+                      defaultValue="+998 "
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold focus:outline-none focus:border-turquoise-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-300 block mb-1 font-semibold">Ish Smenasi:</label>
+                    <input
+                      name="shift"
+                      defaultValue="11:00 - 23:30"
+                      placeholder="11:00 - 23:30"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-mono focus:outline-none focus:border-turquoise-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-300 block mb-1 font-semibold">Oylik Maoshi / Stavka:</label>
+                    <input
+                      name="salary"
+                      defaultValue="5 000 000 UZS"
+                      placeholder="5 000 000 UZS"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white font-mono font-bold text-amber-400 focus:outline-none focus:border-turquoise-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-300 block mb-1 font-semibold">Ish Tajribasi:</label>
+                    <input
+                      name="experience"
+                      defaultValue="2 yil"
+                      placeholder="Masalan: 3 yil"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white focus:outline-none focus:border-turquoise-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">
+                    Biriktirilgan Zallar (Vergul bilan ajrating):
+                  </label>
+                  <input
+                    name="assignedRooms"
+                    defaultValue="№101 VIP, №102"
+                    placeholder="№101 Dengiz Marvaridi, №102"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white focus:outline-none focus:border-turquoise-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-300 block mb-1 font-semibold">Rasm / Avatar URL (Ixtiyoriy):</label>
+                  <input
+                    name="avatar"
+                    placeholder="https://images.unsplash.com/photo-..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-white/10 text-white placeholder-slate-600 focus:outline-none focus:border-turquoise-400"
+                  />
+                </div>
+
+                <div className="pt-3 flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setAddStaffModal(false)}
+                    className="flex-1 py-3 rounded-xl bg-navy-800 hover:bg-navy-750 text-slate-300 font-bold transition-colors cursor-pointer"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-3 rounded-xl bg-gradient-to-r from-turquoise-500 to-cyan-500 hover:from-turquoise-400 text-navy-950 font-black shadow-glow-cyan transition-transform transform active:scale-95 cursor-pointer"
+                  >
+                    {t.confirm}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
     </div>
   );
