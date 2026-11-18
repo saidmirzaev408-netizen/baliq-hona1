@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
+    host: true,        // <-- barcha tarmoq interfeyslari (LAN IP ham)
     open: true,
     fs: {
       strict: false,

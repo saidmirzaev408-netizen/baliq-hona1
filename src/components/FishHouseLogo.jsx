@@ -2,12 +2,12 @@
 // Supports Vite /@fs/ direct image loading, relative public path, AND a masterfully crafted 1:1 SVG twin
 import React, { useState } from 'react';
 
-// Vite fs-direct path to user's uploaded banner image
-const VITE_FS_IMG_URL = '/@fs/C:/Users/user/.gemini/antigravity/brain/c97d2a39-bdd2-4a24-8696-ddf8f879511f/.user_uploaded/media_1794562002082_fb897521.png';
+// Vite fs-direct path to user's uploaded 3D icon/logo image
+const VITE_FS_IMG_URL = '/@fs/C:/Users/user/.gemini/antigravity/brain/c97d2a39-bdd2-4a24-8696-ddf8f879511f/.user_uploaded/media_1794996150830_347afdaa.jpg';
 const PUBLIC_IMG_URL = '/fishhouse-logo.png';
 
 export function FishHouseLogo({
-  className = "h-12",
+  className = "h-11",
   textSize = "text-xl",
   showSubtitle = true,
   iconOnly = false,
@@ -28,42 +28,84 @@ export function FishHouseLogo({
   // If real image source is still available and not forced to SVG
   if (!forceSvg && imageIndex >= 0 && currentSrc) {
     if (iconOnly) {
-      // Aquarium cube only (cropped left part of banner)
+      // Standalone 3D App Squircle Icon Badge
       return (
-        <div
-          className={`relative flex-shrink-0 overflow-hidden rounded-2xl border border-cyan-400/40 shadow-[0_0_25px_rgba(6,182,212,0.45)] ${className}`}
-          style={{ aspectRatio: '1 / 1' }}
-        >
-          <img
-            src={currentSrc}
-            alt="FISH HOUSE Icon"
-            className="h-full w-auto object-cover object-left"
-            style={{ maxWidth: 'none', transform: 'scale(1.15)', transformOrigin: 'left center' }}
-            onError={handleImgError}
-          />
-          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-cyan-300/30 pointer-events-none"></div>
+        <div className={`relative flex-shrink-0 group ${className}`} title="FISH HOUSE – Aquarium & Fish Restaurant">
+          {/* Ambient Neon Glow Aura */}
+          <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-500/50 via-blue-500/50 to-teal-400/40 blur-sm opacity-80 group-hover:opacity-100 transition-opacity"></div>
+
+          {/* 3D Squircle Icon Badge */}
+          <div
+            className="relative h-full aspect-square overflow-hidden rounded-2xl border-2 border-cyan-400/80 shadow-[0_0_20px_rgba(6,182,212,0.5)] bg-[#040d1a] flex items-center justify-center transition-transform duration-300 group-hover:scale-105"
+          >
+            <img
+              src={currentSrc}
+              alt="FISH HOUSE Icon"
+              className="w-full h-full object-cover object-center"
+              onError={handleImgError}
+            />
+            {/* Glass sheen highlight */}
+            <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+          </div>
         </div>
       );
     }
 
-    // Full banner image (with sleek rounded corners, subtle neon border, and compact size)
+    // Icon badge + Brand typography lockup
     return (
-      <div className={`relative flex items-center ${className}`}>
-        <div className="relative overflow-hidden rounded-2xl border border-cyan-400/40 shadow-[0_0_18px_rgba(6,182,212,0.35)] bg-black/50 p-1 flex items-center justify-center group transition-transform hover:scale-[1.02]">
-          {/* Subtle Ambient Glow behind */}
-          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-blue-500/10 pointer-events-none"></div>
+      <div className={`relative flex items-center gap-2.5 select-none ${className}`}>
+        {/* 3D Squircle Icon Badge */}
+        <div className="relative group flex-shrink-0">
+          <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-500/50 via-blue-500/40 to-teal-400/40 blur-sm opacity-70 group-hover:opacity-100 transition-opacity"></div>
+          <div
+            className="relative overflow-hidden rounded-2xl border-2 border-cyan-400/70 shadow-[0_0_18px_rgba(6,182,212,0.45)] bg-[#040d1a] flex items-center justify-center transition-all group-hover:scale-105"
+            style={{ height: '42px', width: '42px', aspectRatio: '1 / 1' }}
+          >
+            <img
+              src={currentSrc}
+              alt="FISH HOUSE Icon"
+              className="w-full h-full object-cover object-center"
+              onError={handleImgError}
+            />
+            {/* Glass sheen highlight */}
+            <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+          </div>
+        </div>
 
-          <img
-            src={currentSrc}
-            alt="FISH HOUSE – Aquarium & Fish Restaurant"
-            className="h-auto w-auto object-contain rounded-xl"
-            style={{
-              maxHeight: '42px',
-              maxWidth: '215px',
-              filter: 'drop-shadow(0 0 12px rgba(6,182,212,0.45))'
-            }}
-            onError={handleImgError}
-          />
+        {/* Brand Text Section */}
+        <div className="flex flex-col justify-center leading-none">
+          <div className="flex items-center tracking-tight font-black">
+            <span
+              className={`font-black tracking-wide ${textSize}`}
+              style={{
+                fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                background: 'linear-gradient(180deg, #FFFFFF 0%, #E2E8F0 60%, #94A3B8 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))'
+              }}
+            >
+              FISH&nbsp;
+            </span>
+            <span
+              className={`font-black tracking-wide ${textSize}`}
+              style={{
+                fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                background: 'linear-gradient(180deg, #67E8F9 0%, #06B6D4 50%, #0284C7 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                filter: 'drop-shadow(0 0 10px rgba(6,182,212,0.6))'
+              }}
+            >
+              HOUSE
+            </span>
+          </div>
+
+          {showSubtitle && (
+            <span className="text-[8.5px] sm:text-[9.5px] font-extrabold tracking-[0.16em] uppercase text-cyan-400 mt-1 opacity-90">
+              AQUARIUM & RESTAURANT
+            </span>
+          )}
         </div>
       </div>
     );

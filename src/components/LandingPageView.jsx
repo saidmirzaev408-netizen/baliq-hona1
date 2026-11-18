@@ -3,6 +3,7 @@ import { Icons } from './Icons';
 import { formatUZS } from '../utils/audio';
 import { FishHouseLogo } from './FishHouseLogo';
 import { getTranslation } from '../i18n/translations';
+import QRCodeModal from './QRCodeModal';
 
 export default function LandingPageView({
   rooms,
@@ -28,6 +29,7 @@ export default function LandingPageView({
   const [newsletterSuccess, setNewsletterSuccess] = useState(false);
   const [activeHeroSlide, setActiveHeroSlide] = useState(0);
   const [selectedArticle, setSelectedArticle] = useState(null);
+  const [showQR, setShowQR] = useState(false);
 
   // Categories matching the circular row from the user reference image
   const categoryList = [
@@ -208,9 +210,9 @@ export default function LandingPageView({
         }`}>
         <div className="w-full max-w-[1720px] mx-auto px-3 sm:px-4 lg:px-6 py-2 flex items-center justify-between gap-2.5 lg:gap-4 flex-nowrap overflow-x-auto scrollbar-none">
 
-          {/* Logo */}
+          {/* Logo (3D Icon Formati) */}
           <div className="flex items-center cursor-pointer shrink-0" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <FishHouseLogo className="h-10 sm:h-11" textSize="text-lg sm:text-xl" showSubtitle={true} />
+            <FishHouseLogo className="h-10 sm:h-11" iconOnly={true} />
           </div>
 
           {/* Navigation Links - Single line without breaking words (yonma-yon) */}
@@ -291,6 +293,27 @@ export default function LandingPageView({
                 {theme === 'dark' ? '☀️' : '🌙'}
               </button>
             )}
+
+            {/* QR Kod Tugmasi */}
+            <button
+              type="button"
+              onClick={() => setShowQR(true)}
+              className={`p-1.5 rounded-xl border shrink-0 transition-all hover:scale-105 cursor-pointer ${theme === 'light'
+                  ? 'bg-cyan-50 hover:bg-cyan-100 text-cyan-600 border-cyan-200'
+                  : 'bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
+                }`}
+              title="Telefonda ochish – QR kod"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <rect x="3" y="3" width="7" height="7" rx="1.2"/>
+                <rect x="14" y="3" width="7" height="7" rx="1.2"/>
+                <rect x="3" y="14" width="7" height="7" rx="1.2"/>
+                <rect x="14" y="14" width="2.5" height="2.5" rx="0.5" fill="currentColor" stroke="none"/>
+                <rect x="18.5" y="14" width="2.5" height="2.5" rx="0.5" fill="currentColor" stroke="none"/>
+                <rect x="14" y="18.5" width="2.5" height="2.5" rx="0.5" fill="currentColor" stroke="none"/>
+                <rect x="18.5" y="18.5" width="2.5" height="2.5" rx="0.5" fill="currentColor" stroke="none"/>
+              </svg>
+            </button>
 
             {/* Quick Search Input (Responsive Width) */}
             <div className="relative hidden xl:block w-32 2xl:w-44 shrink-0">
@@ -1055,6 +1078,11 @@ export default function LandingPageView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* QR Kod Modal */}
+      {showQR && (
+        <QRCodeModal theme={theme} onClose={() => setShowQR(false)} />
       )}
 
     </div>
