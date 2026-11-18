@@ -74,6 +74,25 @@ export const translations = {
     themeLight: "Oq fon",
     themeDark: "Qora fon",
 
+    // Landing Page Navbar & Header
+    navHome: "Bosh sahifa",
+    navMenu: "Menyu",
+    navBestsellers: "Ommabop Taomlar",
+    navVipRooms: "VIP Xonalar",
+    navVipBadge: "Zanit",
+    navChefBlog: "Oshpaz Blogi",
+    navReviews: "Mijozlar Fikri",
+    navContact: "Aloqa",
+    searchPlaceholder: "Taomni qidirish...",
+    btnBookTable: "Stol Band Qilish",
+    btnQuickBookShort: "Band Qilish",
+    workingHoursLabel: "Ish vaqti",
+    adminPosPanel: "Admin & POS Panel",
+    roleCustomer: "Mijoz",
+    roleAdmin: "Admin",
+    roleWaiter: "Ofitsiant",
+    roleChef: "Oshpaz",
+
     // Dashboard Stats
     statTodayRevenue: "Bugungi Tushum",
     statLiveBills: "Jonli Hisoblar",
@@ -108,7 +127,7 @@ export const translations = {
     noActiveOrders: "Hozircha buyurtma yo'q",
     openBillBtn: "Buyurtma berish / Hisob",
     releaseRoomBtn: "Xonani bo'shatish",
-    occupyRoomBtn: "Занять",
+    occupyRoomBtn: "Band qilish",
 
     // Menu Tab
     addNewDish: "+ Yangi Taom",
@@ -271,6 +290,25 @@ export const translations = {
     soundOff: "Звук Выкл",
     themeLight: "Светлая тема",
     themeDark: "Темная тема",
+
+    // Landing Page Navbar & Header
+    navHome: "Главная",
+    navMenu: "Меню",
+    navBestsellers: "Популярные Блюда",
+    navVipRooms: "VIP Залы",
+    navVipBadge: "Занято",
+    navChefBlog: "Блог Шефа",
+    navReviews: "Отзывы",
+    navContact: "Контакты",
+    searchPlaceholder: "Поиск блюда...",
+    btnBookTable: "Забронировать Стол",
+    btnQuickBookShort: "Бронь",
+    workingHoursLabel: "Время работы",
+    adminPosPanel: "Админ & POS Панель",
+    roleCustomer: "Клиент",
+    roleAdmin: "Админ",
+    roleWaiter: "Официант",
+    roleChef: "Шеф-повар",
 
     // Dashboard Stats
     statTodayRevenue: "Выручка Сегодня",
@@ -469,6 +507,25 @@ export const translations = {
     soundOff: "Sound Off",
     themeLight: "Light Mode",
     themeDark: "Dark Mode",
+
+    // Landing Page Navbar & Header
+    navHome: "Home",
+    navMenu: "Menu",
+    navBestsellers: "Popular Dishes",
+    navVipRooms: "VIP Rooms",
+    navVipBadge: "Occupied",
+    navChefBlog: "Chef's Blog",
+    navReviews: "Reviews",
+    navContact: "Contact",
+    searchPlaceholder: "Search dishes...",
+    btnBookTable: "Book a Table",
+    btnQuickBookShort: "Book Table",
+    workingHoursLabel: "Opening hours",
+    adminPosPanel: "Admin & POS Panel",
+    roleCustomer: "Customer",
+    roleAdmin: "Admin",
+    roleWaiter: "Waiter",
+    roleChef: "Chef",
 
     // Dashboard Stats
     statTodayRevenue: "Today's Revenue",

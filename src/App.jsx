@@ -710,13 +710,12 @@ export default function App() {
                 key={item.id}
                 type="button"
                 onClick={() => handleLanguageChange(item.id)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${lang === item.id
+                className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${lang === item.id
                   ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.5)] scale-105'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  : (theme === 'light' ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-200' : 'text-slate-400 hover:text-white hover:bg-white/5')
                   }`}
                 title={item.label}
               >
-                <span>{item.flag}</span>
                 <span>{item.short}</span>
               </button>
             ))}
@@ -1182,16 +1181,16 @@ export default function App() {
                             key={room.id}
                             onClick={() => handleOpenRoomDetails(room.id)}
                             className={`group relative p-3.5 rounded-2xl border text-left transition-all duration-300 flex flex-col justify-between hover:scale-[1.03] hover:-translate-y-1 ${theme === 'light'
-                                ? (isOccupied
-                                  ? 'bg-rose-50/90 border-rose-300 shadow-sm shadow-rose-100 hover:border-rose-400'
-                                  : isReserved
-                                    ? 'bg-amber-50/90 border-amber-300 shadow-sm shadow-amber-100 hover:border-amber-400'
-                                    : 'bg-emerald-50/90 border-emerald-300 shadow-sm shadow-emerald-100 hover:border-emerald-400')
-                                : (isOccupied
-                                  ? 'bg-gradient-to-b from-rose-950/40 via-[#10080a] to-[#070507] border-rose-500/50 shadow-[0_4px_20px_-2px_rgba(239,68,68,0.25)] hover:border-rose-400'
-                                  : isReserved
-                                    ? 'bg-gradient-to-b from-amber-950/30 via-[#100c07] to-[#070605] border-amber-500/40 hover:border-amber-400'
-                                    : 'bg-gradient-to-b from-emerald-950/20 via-[#080d0b] to-[#050806] border-emerald-500/30 hover:border-emerald-400/80 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]')
+                              ? (isOccupied
+                                ? 'bg-rose-50/90 border-rose-300 shadow-sm shadow-rose-100 hover:border-rose-400'
+                                : isReserved
+                                  ? 'bg-amber-50/90 border-amber-300 shadow-sm shadow-amber-100 hover:border-amber-400'
+                                  : 'bg-emerald-50/90 border-emerald-300 shadow-sm shadow-emerald-100 hover:border-emerald-400')
+                              : (isOccupied
+                                ? 'bg-gradient-to-b from-rose-950/40 via-[#10080a] to-[#070507] border-rose-500/50 shadow-[0_4px_20px_-2px_rgba(239,68,68,0.25)] hover:border-rose-400'
+                                : isReserved
+                                  ? 'bg-gradient-to-b from-amber-950/30 via-[#100c07] to-[#070605] border-amber-500/40 hover:border-amber-400'
+                                  : 'bg-gradient-to-b from-emerald-950/20 via-[#080d0b] to-[#050806] border-emerald-500/30 hover:border-emerald-400/80 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]')
                               }`}
                           >
                             {/* Header: Room Number Pill + Beacon */}
@@ -1269,8 +1268,8 @@ export default function App() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Active Tables Overview */}
                     <div className={`rounded-2xl p-6 space-y-4 relative border ${theme === 'light'
-                        ? 'bg-white border-slate-200 shadow-md'
-                        : 'bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border-white/[0.08] shadow-2xl'
+                      ? 'bg-white border-slate-200 shadow-md'
+                      : 'bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border-white/[0.08] shadow-2xl'
                       }`}>
                       <div className={`flex items-center justify-between pb-3 border-b ${theme === 'light' ? 'border-slate-200' : 'border-white/[0.06]'}`}>
                         <div className="flex items-center gap-3">
@@ -1310,14 +1309,14 @@ export default function App() {
                               <div
                                 key={room.id}
                                 className={`p-3.5 rounded-2xl flex items-center justify-between gap-3 transition-all duration-200 group border ${theme === 'light'
-                                    ? 'bg-slate-50/90 hover:bg-slate-100 border-slate-200 hover:border-turquoise-400 shadow-xs'
-                                    : 'bg-[#0e111a]/80 border-white/[0.07] hover:border-turquoise-500/40'
+                                  ? 'bg-slate-50/90 hover:bg-slate-100 border-slate-200 hover:border-turquoise-400 shadow-xs'
+                                  : 'bg-[#0e111a]/80 border-white/[0.07] hover:border-turquoise-500/40'
                                   }`}
                               >
                                 <div className="flex items-center gap-3">
                                   <div className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center font-mono font-black text-xs shadow-md border ${theme === 'light'
-                                      ? 'bg-rose-50 border-rose-200 text-rose-700'
-                                      : 'bg-gradient-to-br from-rose-950 to-navy-950 border-rose-500/40 text-white'
+                                    ? 'bg-rose-50 border-rose-200 text-rose-700'
+                                    : 'bg-gradient-to-br from-rose-950 to-navy-950 border-rose-500/40 text-white'
                                     }`}>
                                     <span>№{room.number}</span>
                                     <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
@@ -1354,8 +1353,8 @@ export default function App() {
                                   <button
                                     onClick={() => handleOpenRoomDetails(room.id)}
                                     className={`px-3 py-1.5 rounded-xl font-bold text-xs border transition-all flex items-center gap-1 cursor-pointer ${theme === 'light'
-                                        ? 'bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border-cyan-300'
-                                        : 'bg-turquoise-500/10 hover:bg-turquoise-500/20 text-turquoise-300 border-turquoise-500/30'
+                                      ? 'bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border-cyan-300'
+                                      : 'bg-turquoise-500/10 hover:bg-turquoise-500/20 text-turquoise-300 border-turquoise-500/30'
                                       }`}
                                   >
                                     <span>Hisob</span>
@@ -1371,8 +1370,8 @@ export default function App() {
 
                     {/* Quick Kitchen Alert */}
                     <div className={`rounded-2xl p-6 space-y-4 relative border ${theme === 'light'
-                        ? 'bg-white border-slate-200 shadow-md'
-                        : 'bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border-white/[0.08] shadow-2xl'
+                      ? 'bg-white border-slate-200 shadow-md'
+                      : 'bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border-white/[0.08] shadow-2xl'
                       }`}>
                       <div className={`flex items-center justify-between pb-3 border-b ${theme === 'light' ? 'border-slate-200' : 'border-white/[0.06]'}`}>
                         <div className="flex items-center gap-3">
@@ -1408,8 +1407,8 @@ export default function App() {
                             <div
                               key={ord.id}
                               className={`p-3.5 rounded-2xl flex items-center justify-between gap-3 transition-all duration-200 border ${theme === 'light'
-                                  ? 'bg-slate-50/90 border-slate-200 hover:border-cyan-400 shadow-xs'
-                                  : 'bg-[#0e111a]/80 border-white/[0.07] hover:border-cyan-500/40'
+                                ? 'bg-slate-50/90 border-slate-200 hover:border-cyan-400 shadow-xs'
+                                : 'bg-[#0e111a]/80 border-white/[0.07] hover:border-cyan-500/40'
                                 }`}
                             >
                               <div className="flex items-center gap-3">
@@ -1564,12 +1563,12 @@ export default function App() {
                               )}
                               {isAvailable && (
                                 <button onClick={() => handleOpenCheckIn(room)} className="flex-1 py-2 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 text-xs font-bold cursor-pointer">
-                                  {t.occupyRoomBtn || "Занять"}
+                                  {t.occupyRoomBtn || "Band qilish"}
                                 </button>
                               )}
                               {isReserved && (
                                 <button onClick={() => handleOpenCheckIn(room)} className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 text-xs font-bold cursor-pointer">
-                                  {t.occupyRoomBtn || "Занять"}
+                                  {t.occupyRoomBtn || "Band qilish"}
                                 </button>
                               )}
                             </div>
@@ -1981,8 +1980,8 @@ export default function App() {
                           <div
                             key={member.id}
                             className={`rounded-2xl p-5 border transition-all duration-300 shadow-md flex flex-col justify-between hover:-translate-y-1 ${theme === 'light'
-                                ? (isOnDuty ? 'bg-white border-slate-200 hover:border-turquoise-400' : 'bg-slate-50 border-slate-200 opacity-80 hover:opacity-100')
-                                : (isOnDuty ? 'bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border-white/[0.08] hover:border-turquoise-500/40' : 'bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border-white/[0.04] opacity-80 hover:opacity-100')
+                              ? (isOnDuty ? 'bg-white border-slate-200 hover:border-turquoise-400' : 'bg-slate-50 border-slate-200 opacity-80 hover:opacity-100')
+                              : (isOnDuty ? 'bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border-white/[0.08] hover:border-turquoise-500/40' : 'bg-gradient-to-b from-[#0e1118] via-[#090b10] to-[#06070a] border-white/[0.04] opacity-80 hover:opacity-100')
                               }`}
                           >
                             <div className="space-y-4">
@@ -2031,8 +2030,8 @@ export default function App() {
 
                               {/* Details Pod (Telefon, Ish Smenasi, Maoshi) */}
                               <div className={`p-3 rounded-xl space-y-2 text-xs border ${theme === 'light'
-                                  ? 'bg-slate-50 border-slate-200 text-slate-700'
-                                  : 'bg-navy-950/70 border-white/5 text-slate-400'
+                                ? 'bg-slate-50 border-slate-200 text-slate-700'
+                                : 'bg-navy-950/70 border-white/5 text-slate-400'
                                 }`}>
                                 <div className={`flex justify-between items-center ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
                                   <span>📞 {t.phone}:</span>
@@ -2060,8 +2059,8 @@ export default function App() {
                                     <span
                                       key={ri}
                                       className={`px-2 py-0.5 rounded-lg border text-[10px] font-bold ${theme === 'light'
-                                          ? 'bg-cyan-50 border-cyan-200 text-cyan-800'
-                                          : 'bg-turquoise-500/10 border-turquoise-500/20 text-turquoise-300'
+                                        ? 'bg-cyan-50 border-cyan-200 text-cyan-800'
+                                        : 'bg-turquoise-500/10 border-turquoise-500/20 text-turquoise-300'
                                         }`}
                                     >
                                       {r}
@@ -2624,7 +2623,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="w-full max-w-md rounded-2xl glass-card border border-white/10 p-6 space-y-4 text-xs">
             <div className="flex justify-between items-center pb-2 border-b border-white/10">
-              <h3 className="font-bold text-white text-base">№{checkInModal.room.number} – {t.occupyRoomBtn || "Занять"} ({checkInModal.room.name})</h3>
+              <h3 className="font-bold text-white text-base">№{checkInModal.room.number} – {t.occupyRoomBtn || "Band qilish"} ({checkInModal.room.name})</h3>
               <button onClick={() => setCheckInModal({ isOpen: false, room: null })} className="text-slate-400 hover:text-white">&times;</button>
             </div>
             <form onSubmit={(e) => {
@@ -2658,7 +2657,7 @@ export default function App() {
               </div>
               <div className="pt-2 flex gap-2">
                 <button type="button" onClick={() => setCheckInModal({ isOpen: false, room: null })} className="flex-1 py-2.5 rounded-xl bg-navy-800 text-slate-300 font-bold">Bekor qilish</button>
-                <button type="submit" className="flex-1 py-2.5 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 font-black shadow-glow-cyan cursor-pointer">{t.occupyRoomBtn || "Занять"}</button>
+                <button type="submit" className="flex-1 py-2.5 rounded-xl bg-turquoise-500 hover:bg-turquoise-400 text-navy-950 font-black shadow-glow-cyan cursor-pointer">{t.occupyRoomBtn || "Band qilish"}</button>
               </div>
             </form>
           </div>

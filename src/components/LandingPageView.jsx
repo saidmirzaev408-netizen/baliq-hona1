@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Icons } from './Icons';
 import { formatUZS } from '../utils/audio';
 import { FishHouseLogo } from './FishHouseLogo';
+import { getTranslation } from '../i18n/translations';
 
 export default function LandingPageView({
   rooms,
@@ -20,6 +21,7 @@ export default function LandingPageView({
   onOrderDish,
   appliedDiscounts
 }) {
+  const t = getTranslation(lang);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -162,101 +164,113 @@ export default function LandingPageView({
 
   return (
     <div className="min-h-screen bg-black text-slate-100 font-sans selection:bg-turquoise-500 selection:text-black">
-      
+
       {/* 1. TOP ANNOUNCEMENT BAR */}
-      <div className="bg-[#08090c] text-xs text-slate-300 py-2 px-4 border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
+      <div className={`text-xs py-2 px-4 border-b flex flex-wrap items-center justify-between gap-2 transition-all ${theme === 'light'
+          ? 'bg-slate-100 text-slate-700 border-slate-200'
+          : 'bg-[#08090c] text-slate-300 border-white/10'
+        }`}>
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <span className="flex items-center gap-1.5 text-turquoise-400 font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-              Ish vaqti: {restaurant.workingHours || "11:00 - 23:30"}
+              {t.workingHoursLabel || "Ish vaqti"}: {restaurant.workingHours || "11:00 - 23:30"}
             </span>
-            <span className="hidden sm:inline text-slate-400">|</span>
-            <span className="hidden sm:inline text-slate-300">📍 {restaurant.address || "Toshkent sh., Chilonzor"}</span>
+            <span className={`hidden sm:inline ${theme === 'light' ? 'text-slate-300' : 'text-slate-600'}`}>|</span>
+            <span className={`hidden sm:inline ${theme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>📍 {restaurant.address || "Toshkent sh., Chilonzor"}</span>
           </div>
-          
+
           <div className="flex items-center space-x-4">
-            <a href="tel:+998712008899" className="text-turquoise-300 hover:text-white transition-colors flex items-center gap-1 font-semibold">
+            <a href="tel:+998712008899" className="text-turquoise-400 hover:text-turquoise-300 transition-colors flex items-center gap-1 font-semibold">
               <Icons.Phone className="w-3.5 h-3.5" />
               <span>+998 (71) 200-88-99</span>
             </a>
-            <span className="text-slate-400">|</span>
+            <span className={`text-slate-400 ${theme === 'light' ? 'text-slate-300' : 'text-slate-600'}`}>|</span>
             <button
               onClick={onSwitchToAdmin}
-              className="px-2.5 py-1 rounded bg-turquoise-500/20 hover:bg-turquoise-500/30 text-turquoise-300 text-xs font-bold transition-all flex items-center gap-1 border border-turquoise-500/30"
+              className={`px-2.5 py-1 rounded text-xs font-bold transition-all flex items-center gap-1 border cursor-pointer ${theme === 'light'
+                  ? 'bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border-cyan-200'
+                  : 'bg-turquoise-500/20 hover:bg-turquoise-500/30 text-turquoise-300 border-turquoise-500/30'
+                }`}
               title="Restoran boshqaruv paneliga o'tish"
             >
               <Icons.Dashboard className="w-3.5 h-3.5" />
-              <span>Admin & POS Panel</span>
+              <span>{t.adminPosPanel || "Admin & POS Panel"}</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* 2. MAIN HEADER & NAVIGATION (Inspired by reference layout) */}
-      <header className="sticky top-0 z-40 bg-navy-950/90 backdrop-blur-md border-b border-white/10 shadow-2xl transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
-          
+      {/* 2. MAIN HEADER & NAVIGATION */}
+      <header className={`sticky top-0 z-40 backdrop-blur-md border-b shadow-xl transition-all ${theme === 'light'
+          ? 'bg-white/95 border-slate-200 text-slate-800 shadow-sm'
+          : 'bg-navy-950/90 border-white/10 text-white shadow-2xl'
+        }`}>
+        <div className="w-full max-w-[1720px] mx-auto px-3 sm:px-4 lg:px-6 py-2 flex items-center justify-between gap-2.5 lg:gap-4 flex-nowrap overflow-x-auto scrollbar-none">
+
           {/* Logo */}
-          <div className="flex items-center cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <FishHouseLogo className="h-11 sm:h-12" textSize="text-xl sm:text-2xl" showSubtitle={true} />
+          <div className="flex items-center cursor-pointer shrink-0" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            <FishHouseLogo className="h-10 sm:h-11" textSize="text-lg sm:text-xl" showSubtitle={true} />
           </div>
 
-          {/* Navigation Links */}
-          <nav className="hidden lg:flex items-center space-x-7 text-sm font-bold text-slate-200">
-            <a href="#hero" className="hover:text-turquoise-400 transition-colors py-1 relative group">
-              Bosh sahifa
+          {/* Navigation Links - Single line without breaking words (yonma-yon) */}
+          <nav className={`hidden lg:flex items-center gap-2.5 xl:gap-4 text-xs xl:text-sm font-bold shrink-0 whitespace-nowrap transition-colors ${theme === 'light' ? 'text-slate-700' : 'text-slate-200'
+            }`}>
+            <a href="#hero" className="hover:text-turquoise-500 transition-colors py-1 relative group whitespace-nowrap">
+              {t.navHome || "Bosh sahifa"}
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-turquoise-400 group-hover:w-full transition-all duration-300"></span>
             </a>
-            <a href="#categories" className="hover:text-turquoise-400 transition-colors py-1 relative group">
-              Menyu
+            <a href="#categories" className="hover:text-turquoise-500 transition-colors py-1 relative group whitespace-nowrap">
+              {t.navMenu || "Menyu"}
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-turquoise-400 group-hover:w-full transition-all duration-300"></span>
             </a>
-            <a href="#bestsellers" className="hover:text-turquoise-400 transition-colors py-1 relative group">
-              Ommabop Taomlar
+            <a href="#bestsellers" className="hover:text-turquoise-500 transition-colors py-1 relative group whitespace-nowrap">
+              {t.navBestsellers || "Ommabop Taomlar"}
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-turquoise-400 group-hover:w-full transition-all duration-300"></span>
             </a>
-            <a href="#rooms" className="hover:text-turquoise-400 transition-colors py-1 relative group flex items-center gap-1">
-              VIP Xonalar
-              <span className="px-1.5 py-0.2 text-[9px] font-bold rounded-full bg-red-500/20 text-red-400 border border-red-500/30">ZANIT holati</span>
+            <a href="#rooms" className="hover:text-turquoise-500 transition-colors py-1 relative group flex items-center gap-1.5 whitespace-nowrap">
+              <span>{t.navVipRooms || "VIP Xonalar"}</span>
+              <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-rose-500/15 text-rose-500 border border-rose-500/30 whitespace-nowrap">
+                {t.navVipBadge || "Zanit"}
+              </span>
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-turquoise-400 group-hover:w-full transition-all duration-300"></span>
             </a>
-            <a href="#blog" className="hover:text-turquoise-400 transition-colors py-1 relative group">
-              Oshpaz Blogi
+            <a href="#blog" className="hover:text-turquoise-500 transition-colors py-1 relative group whitespace-nowrap">
+              {t.navChefBlog || "Oshpaz Blogi"}
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-turquoise-400 group-hover:w-full transition-all duration-300"></span>
             </a>
-            <a href="#reviews" className="hover:text-turquoise-400 transition-colors py-1 relative group">
-              Mijozlar Fikri
+            <a href="#reviews" className="hover:text-turquoise-500 transition-colors py-1 relative group whitespace-nowrap">
+              {t.navReviews || "Mijozlar Fikri"}
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-turquoise-400 group-hover:w-full transition-all duration-300"></span>
             </a>
-            <a href="#contact" className="hover:text-turquoise-400 transition-colors py-1 relative group">
-              Aloqa
+            <a href="#contact" className="hover:text-turquoise-500 transition-colors py-1 relative group whitespace-nowrap">
+              {t.navContact || "Aloqa"}
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-turquoise-400 group-hover:w-full transition-all duration-300"></span>
             </a>
           </nav>
 
-          {/* Right Header Actions: Search, Booking Button, Language, Auth */}
-          <div className="flex items-center space-x-3">
-            
+          {/* Right Header Actions: Search, Booking Button, Language, Auth - Fixed on 1 line without wrapping */}
+          <div className="flex items-center gap-1.5 xl:gap-2.5 shrink-0 whitespace-nowrap flex-nowrap">
+
             {/* Multi-Language Selector (UZ / RU / EN) */}
             {onLanguageChange && (
-              <div className="flex items-center bg-[#13161c] border border-white/15 rounded-xl p-0.5 gap-0.5 shadow-inner">
+              <div className={`flex items-center border rounded-xl p-0.5 gap-0.5 shadow-inner shrink-0 transition-colors ${theme === 'light' ? 'bg-slate-100 border-slate-300' : 'bg-[#13161c] border-white/15'
+                }`}>
                 {[
-                  { id: 'uz', short: 'UZ', flag: '🇺🇿' },
-                  { id: 'ru', short: 'RU', flag: '🇷🇺' },
-                  { id: 'en', short: 'EN', flag: '🇬🇧' },
+                  { id: 'uz', short: 'UZ', label: "O'zbek" },
+                  { id: 'ru', short: 'RU', label: 'Русский' },
+                  { id: 'en', short: 'EN', label: 'English' },
                 ].map(item => (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => onLanguageChange(item.id)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      lang === item.id
-                        ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black shadow-[0_0_12px_rgba(6,182,212,0.4)]'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
+                    title={item.label}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-black transition-all cursor-pointer ${lang === item.id
+                        ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black shadow-[0_0_12px_rgba(6,182,212,0.45)]'
+                        : (theme === 'light' ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-200' : 'text-slate-400 hover:text-white hover:bg-white/5')
+                      }`}
                   >
-                    <span>{item.flag}</span>
                     <span>{item.short}</span>
                   </button>
                 ))}
@@ -268,64 +282,77 @@ export default function LandingPageView({
               <button
                 type="button"
                 onClick={onToggleTheme}
-                className={`p-2 rounded-xl border text-xs font-bold transition-all shadow-inner hover:scale-105 cursor-pointer ${
-                  theme === 'light'
+                className={`p-1.5 rounded-xl border text-xs font-bold shrink-0 transition-all shadow-inner hover:scale-105 cursor-pointer ${theme === 'light'
                     ? 'bg-amber-500/20 text-amber-500 border-amber-500/50'
                     : 'bg-[#13161c] hover:bg-[#1a1f2b] text-slate-200 border-white/15'
-                }`}
+                  }`}
                 title={theme === 'dark' ? "Oq fonga o'tish ☀️" : "Qora fonga o'tish 🌙"}
               >
                 {theme === 'dark' ? '☀️' : '🌙'}
               </button>
             )}
 
-            {/* Quick Search Input */}
-            <div className="relative hidden md:block w-48 xl:w-56">
+            {/* Quick Search Input (Responsive Width) */}
+            <div className="relative hidden xl:block w-32 2xl:w-44 shrink-0">
               <input
                 type="text"
-                placeholder="Taomni qidirish..."
+                placeholder={t.searchPlaceholder || "Taomni qidirish..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-navy-900/80 text-white text-xs pl-8 pr-3 py-2 rounded-xl border border-white/10 focus:outline-none focus:border-turquoise-400 transition-all placeholder-slate-400"
+                className={`w-full text-xs pl-7 pr-3 py-1.5 rounded-xl border focus:outline-none transition-all ${theme === 'light'
+                    ? 'bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20'
+                    : 'bg-navy-900/80 border-white/10 text-white placeholder-slate-400 focus:border-turquoise-400'
+                  }`}
               />
-              <Icons.Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <Icons.Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2" />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                   &times;
                 </button>
               )}
             </div>
 
-            {/* Book Room Button (Bright action button like in user image) */}
+            {/* Book Room Button (Bright action button) */}
             <button
               onClick={() => onBookRoom('')}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-turquoise-500 hover:from-emerald-400 hover:to-turquoise-400 text-navy-950 font-black text-xs uppercase tracking-wider shadow-glow-cyan flex items-center gap-1.5 transform hover:-translate-y-0.5 transition-all"
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-turquoise-500 hover:from-emerald-400 hover:to-turquoise-400 text-navy-950 font-black text-xs uppercase tracking-wider shadow-glow-cyan flex items-center gap-1.5 shrink-0 transform hover:-translate-y-0.5 transition-all cursor-pointer whitespace-nowrap"
             >
               <Icons.Calendar className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Stol Band Qilish</span>
-              <span className="sm:hidden">Band Qilish</span>
+              <span className="hidden xl:inline">{t.btnBookTable || "Stol Band Qilish"}</span>
+              <span className="xl:hidden">{t.btnQuickBookShort || "Band Qilish"}</span>
             </button>
 
-            {/* Auth Profile / Login Button - Luxury Glass Pill */}
+            {/* Auth Profile / Login Button - Adaptive Glass Pill */}
             {currentUser ? (
-              <div className="relative flex items-center gap-2 bg-gradient-to-r from-[#131722]/90 via-[#0e111a]/95 to-[#131722]/90 border border-cyan-500/25 px-2.5 py-1.5 rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.5)]">
+              <div className={`relative flex items-center gap-2 border px-2 py-1 rounded-2xl transition-all shadow-sm shrink-0 whitespace-nowrap ${theme === 'light'
+                  ? 'bg-white hover:bg-slate-50 border-slate-300 text-slate-800'
+                  : 'bg-gradient-to-r from-[#131722]/90 via-[#0e111a]/95 to-[#131722]/90 border-cyan-500/25 shadow-[0_4px_15px_rgba(0,0,0,0.5)]'
+                }`}>
                 <div className="relative flex-shrink-0">
                   <div className="w-6 h-6 rounded-xl bg-gradient-to-tr from-cyan-600 to-sky-400 p-[1px]">
-                    <div className="w-full h-full rounded-[11px] bg-[#070b12] flex items-center justify-center text-[10px] font-black text-cyan-300 uppercase">
+                    <div className={`w-full h-full rounded-[11px] flex items-center justify-center text-[10px] font-black uppercase ${theme === 'light' ? 'bg-cyan-50 text-cyan-700' : 'bg-[#070b12] text-cyan-300'
+                      }`}>
                       {currentUser.name ? currentUser.name.charAt(0) : 'U'}
                     </div>
                   </div>
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-black"></span>
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-white"></span>
                 </div>
                 <div className="hidden sm:block text-left text-xs leading-none">
-                  <p className="font-extrabold text-white truncate max-w-[100px]">{currentUser.name.split(' ')[0]}</p>
-                  <p className="text-[9px] text-cyan-400 font-bold uppercase mt-0.5">{currentUser.role}</p>
+                  <p className={`font-extrabold truncate max-w-[85px] ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
+                    {(currentUser.name || 'User').split(' ')[0]}
+                  </p>
+                  <p className={`text-[9px] font-bold uppercase mt-0.5 ${theme === 'light' ? 'text-cyan-700' : 'text-cyan-400'}`}>
+                    {currentUser.role === 'customer' ? (t.roleCustomer || 'Mijoz') : currentUser.role === 'admin' ? (t.roleAdmin || 'Admin') : currentUser.role === 'waiter' ? (t.roleWaiter || 'Ofitsiant') : currentUser.role === 'chef' ? (t.roleChef || 'Oshpaz') : currentUser.role}
+                  </p>
                 </div>
                 <button
                   type="button"
                   onClick={onLogout}
-                  title="Chiqish"
-                  className="p-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-300 hover:text-white border border-rose-500/30 transition-all cursor-pointer ml-1"
+                  title={t.logout || "Chiqish"}
+                  className={`p-1 rounded-lg border transition-all cursor-pointer ml-0.5 ${theme === 'light'
+                      ? 'bg-rose-50 hover:bg-rose-100 text-rose-600 border-rose-200'
+                      : 'bg-rose-500/10 hover:bg-rose-500/25 text-rose-300 hover:text-white border-rose-500/30'
+                    }`}
                 >
                   <Icons.Logout className="w-3.5 h-3.5" />
                 </button>
@@ -333,10 +360,13 @@ export default function LandingPageView({
             ) : (
               <button
                 onClick={onOpenLogin}
-                className="px-3.5 py-2 rounded-xl bg-navy-900 hover:bg-navy-850 text-white font-bold text-xs border border-white/15 hover:border-turquoise-400/50 transition-all flex items-center gap-1.5"
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs border shrink-0 whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${theme === 'light'
+                    ? 'bg-white hover:bg-slate-50 text-slate-900 border-slate-300 shadow-xs'
+                    : 'bg-navy-900 hover:bg-navy-850 text-white border-white/15 hover:border-turquoise-400/50'
+                  }`}
               >
                 <Icons.User className="w-3.5 h-3.5 text-turquoise-400" />
-                <span>Kirish</span>
+                <span>{t.login || "Kirish"}</span>
               </button>
             )}
           </div>
@@ -346,10 +376,10 @@ export default function LandingPageView({
       {/* 3. HERO SHOWCASE WITH LUXURY WOOD BACKDROP & FLOATING INGREDIENTS */}
       {/* Inspired directly by the user's reference screenshot */}
       <section id="hero" className="relative overflow-hidden pt-8 pb-16 lg:py-20 border-b border-white/10 bg-[#160c07] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#2a170d] via-[#150b06] to-[#080402]">
-        
+
         {/* Dark Wood Grain Overlay & Floating Elements */}
         <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay bg-[radial-gradient(#d97706_1px,transparent_1px)] [background-size:16px_16px]"></div>
-        
+
         {/* Floating realistic food elements (tomatoes, basil, lemon, spices) like in reference photo */}
         <div className="absolute top-12 left-10 text-3xl opacity-75 animate-bounce duration-1000 select-none pointer-events-none" style={{ animationDuration: '4s' }}>
           🍋
@@ -369,10 +399,10 @@ export default function LandingPageView({
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            
+
             {/* Left Column: Headline, Badges, Gourmet Ingredients List, CTAs */}
             <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              
+
               {/* Special Discount Floating Ribbon */}
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-black shadow-glow-gold">
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
@@ -404,7 +434,7 @@ export default function LandingPageView({
 
               {/* Price & Action Buttons */}
               <div className="pt-4 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                
+
                 {/* Glowing Green Order Button like in reference photo */}
                 <button
                   onClick={() => onBookRoom('')}
@@ -445,12 +475,12 @@ export default function LandingPageView({
 
             {/* Right Column: Giant Platter on Wood with floating promo badge & carousel */}
             <div className="lg:col-span-5 flex flex-col items-center">
-              
+
               <div className="relative w-full max-w-md aspect-square flex items-center justify-center">
-                
+
                 {/* Ambient glow behind platter */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/20 via-orange-600/30 to-turquoise-500/20 rounded-full blur-3xl animate-pulse"></div>
-                
+
                 {/* Circular Promo Badge like in reference screenshot (۵۰ درصد تخفیف) */}
                 <div className="absolute -top-3 -right-3 z-30 w-24 h-24 rounded-full bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 text-navy-950 font-black p-2 flex flex-col items-center justify-center text-center shadow-2xl shadow-amber-500/50 transform rotate-12 hover:rotate-0 transition-transform cursor-pointer border-2 border-white/40">
                   <span className="text-lg leading-tight font-extrabold">-40%</span>
@@ -464,7 +494,7 @@ export default function LandingPageView({
                     alt={currentHero.dishName}
                     className="w-full h-full object-cover rounded-full shadow-2xl transform hover:scale-105 transition-transform duration-700"
                   />
-                  
+
                   {/* Floating price tag bottom pill */}
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 px-5 py-2 rounded-full bg-navy-950/90 border border-turquoise-400/40 backdrop-blur-md shadow-2xl flex items-center gap-3">
                     <span className="text-xs font-bold text-slate-300">{currentHero.dishWeight}</span>
@@ -481,9 +511,8 @@ export default function LandingPageView({
                   <button
                     key={idx}
                     onClick={() => setActiveHeroSlide(idx)}
-                    className={`h-2.5 rounded-full transition-all duration-300 ${
-                      activeHeroSlide === idx ? 'w-8 bg-turquoise-400 shadow-glow-cyan' : 'w-2.5 bg-white/30 hover:bg-white/60'
-                    }`}
+                    className={`h-2.5 rounded-full transition-all duration-300 ${activeHeroSlide === idx ? 'w-8 bg-turquoise-400 shadow-glow-cyan' : 'w-2.5 bg-white/30 hover:bg-white/60'
+                      }`}
                     title={`Slide ${idx + 1}`}
                   />
                 ))}
@@ -501,7 +530,7 @@ export default function LandingPageView({
       {/* 4. CIRCULAR CATEGORIES SECTION (Exact layout from user reference image) */}
       <section id="categories" className="py-12 bg-navy-950/90 border-b border-white/10 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          
+
           <div className="text-center max-w-xl mx-auto mb-8">
             <span className="px-3 py-1 rounded-full bg-turquoise-500/10 border border-turquoise-500/30 text-turquoise-400 text-xs font-extrabold uppercase tracking-wider">
               Menyu Kategoriyalari
@@ -522,15 +551,13 @@ export default function LandingPageView({
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`flex flex-col items-center gap-2.5 group transition-all min-w-[76px] sm:min-w-[90px] ${
-                    isSelected ? 'scale-105' : 'opacity-75 hover:opacity-100 hover:scale-105'
-                  }`}
+                  className={`flex flex-col items-center gap-2.5 group transition-all min-w-[76px] sm:min-w-[90px] ${isSelected ? 'scale-105' : 'opacity-75 hover:opacity-100 hover:scale-105'
+                    }`}
                 >
-                  <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-2xl sm:text-3xl border-2 transition-all duration-300 shadow-lg ${
-                    isSelected
+                  <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-2xl sm:text-3xl border-2 transition-all duration-300 shadow-lg ${isSelected
                       ? 'bg-gradient-to-tr from-ocean-700 via-turquoise-600 to-cyan-400 border-white text-white shadow-glow-cyan rotate-6'
                       : 'bg-navy-900 border-white/10 text-slate-300 group-hover:border-turquoise-400/50 group-hover:bg-navy-850'
-                  }`}>
+                    }`}>
                     <span>{cat.icon}</span>
                   </div>
                   <div className="text-center">
@@ -584,7 +611,7 @@ export default function LandingPageView({
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-navy-900 via-transparent to-transparent"></div>
-                  
+
                   {/* Grams Badge */}
                   <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-navy-950/80 backdrop-blur-md text-[11px] font-bold text-slate-300 border border-white/10">
                     ⚖️ {dish.weightGrams ? `${dish.weightGrams} gr` : (dish.weight || '450 gr')}
@@ -636,7 +663,7 @@ export default function LandingPageView({
       {/* 6. DINING ROOMS SHOWCASE (WITH PROMINENT "ZANIT" STATUS BADGE) */}
       <section id="rooms" className="py-16 bg-navy-950 border-y border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          
+
           <div className="text-center max-w-2xl mx-auto mb-12">
             <span className="px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-black uppercase tracking-wider">
               Xonalar & Kabinetlar
@@ -660,13 +687,12 @@ export default function LandingPageView({
               return (
                 <div
                   key={room.id}
-                  className={`relative rounded-3xl overflow-hidden border transition-all duration-300 flex flex-col justify-between ${
-                    isOccupied
+                  className={`relative rounded-3xl overflow-hidden border transition-all duration-300 flex flex-col justify-between ${isOccupied
                       ? 'bg-navy-900/90 border-red-500/40 shadow-glow-red'
                       : isReserved
-                      ? 'bg-navy-900/90 border-amber-500/40'
-                      : 'bg-navy-900/90 border-emerald-500/30 hover:border-turquoise-400/60'
-                  }`}
+                        ? 'bg-navy-900/90 border-amber-500/40'
+                        : 'bg-navy-900/90 border-emerald-500/30 hover:border-turquoise-400/60'
+                    }`}
                 >
                   <div>
                     {/* Room Photo */}
@@ -677,7 +703,7 @@ export default function LandingPageView({
                         className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-navy-900 via-transparent to-transparent"></div>
-                      
+
                       {/* Room Number */}
                       <div className="absolute top-3 left-3 px-3 py-1 rounded-xl bg-navy-950/90 backdrop-blur-md text-xs font-black text-turquoise-300 border border-turquoise-500/30">
                         № {room.number}
@@ -819,7 +845,7 @@ export default function LandingPageView({
       {/* 8. TESTIMONIALS SECTION (Yellow/Warm Styled like in reference screenshot "مشتریان در مورد ما چه می‌گویند؟") */}
       <section id="reviews" className="py-16 bg-gradient-to-b from-amber-500/10 via-amber-600/5 to-transparent border-t border-amber-500/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          
+
           <div className="text-center max-w-xl mx-auto mb-10">
             <span className="px-3.5 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-black uppercase tracking-wider">
               ⭐ Haqiqiy Sharhlar
@@ -870,7 +896,7 @@ export default function LandingPageView({
       {/* 9. NEWSLETTER SUBSCRIPTION (Matching reference screenshot section) */}
       <section className="py-16 max-w-5xl mx-auto px-4 sm:px-6">
         <div className="bg-gradient-to-r from-ocean-900 via-navy-900 to-ocean-900 rounded-3xl p-8 sm:p-12 border border-turquoise-500/30 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
-          
+
           <div className="absolute -top-12 -right-12 w-48 h-48 bg-turquoise-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
           <div className="space-y-3 text-center md:text-left max-w-md">
@@ -917,7 +943,7 @@ export default function LandingPageView({
       <footer id="contact" className="bg-[#040813] border-t border-white/10 pt-16 pb-8 text-slate-300 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-white/10">
-            
+
             {/* Col 1: About & Logo */}
             <div className="space-y-4">
               <FishHouseLogo className="h-14" textSize="text-xl" showSubtitle={true} />
